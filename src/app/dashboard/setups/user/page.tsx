@@ -1,34 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Card, Tab, TabList, TabGroup, TabPanel, TabPanels, TextInput, Select, SelectItem, Badge, Button } from '@tremor/react';
 import { UserPlus, Users, Settings, Lock, Search, Filter, MoreVertical, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
 
-// Mock data for demonstration
-const mockUsers = [
-  {
-    id: 1,
-    firstName: 'John',
-    lastName: 'Doe',
-    username: 'johndoe',
-    role: 'Admin',
-    status: 'Active',
-    lastLogin: '2024-12-14',
-  },
-  {
-    id: 2,
-    firstName: 'Jane',
-    lastName: 'Smith',
-    username: 'janesmith',
-    role: 'User',
-    status: 'Active',
-    lastLogin: '2024-12-13',
-  },
-  // Add more mock users as needed
-];
+interface User {
+  id: string;
+  firstName: string;
+  lastName: string;
+  username: string;
+  role: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
 export default function UserSetupPage() {
   const [formData, setFormData] = useState({
@@ -43,6 +30,10 @@ export default function UserSetupPage() {
   const [roleFilter, setRoleFilter] = useState('all');
   const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [selectedRole, setSelectedRole] = useState('STUDENT');
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -96,6 +87,87 @@ export default function UserSetupPage() {
       ...prev,
       [name]: value
     }));
+  };
+
+  // Fetch users
+  useEffect(() => {
+    const fetchUsers = async () => {
+      setIsLoadingUsers(true);
+      try {
+        const response = await fetch('/api/users');
+        if (!response.ok) {
+          throw new Error('Failed to fetch users');
+        }
+        const data = await response.json();
+        setUsers(data);
+      } catch (error) {
+        console.error('Failed to fetch users:', error);
+        toast.error('Failed to fetch users');
+      } finally {
+        setIsLoadingUsers(false);
+      }
+    };
+    fetchUsers();
+  }, []);
+
+  // Delete selected users
+  const handleDeleteSelected = async () => {
+    if (!selectedUsers.length) return;
+    
+    if (!confirm('Are you sure you want to delete the selected users?')) return;
+
+    try {
+      const response = await fetch('/api/users/delete-multiple', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ userIds: selectedUsers }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete users');
+      }
+
+      setUsers(users.filter(user => !selectedUsers.includes(user.id)));
+      setSelectedUsers([]);
+      toast.success('Users deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete users');
+    }
+  };
+
+  // Change role for selected users
+  const handleChangeRole = async () => {
+    if (!selectedUsers.length) return;
+
+    try {
+      const response = await fetch('/api/users/change-role', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          userIds: selectedUsers,
+          role: selectedRole 
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user roles');
+      }
+
+      setUsers(users.map(user => 
+        selectedUsers.includes(user.id) 
+          ? { ...user, role: selectedRole }
+          : user
+      ));
+      setSelectedUsers([]);
+      setShowRoleModal(false);
+      toast.success('User roles updated successfully');
+    } catch (error) {
+      toast.error('Failed to update user roles');
+    }
   };
 
   return (
@@ -291,8 +363,8 @@ export default function UserSetupPage() {
                             className="appearance-none w-full bg-gray-50 border border-gray-200 text-gray-900 py-2.5 px-4 pr-8 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors text-sm"
                           >
                             <option value="all">All Roles</option>
-                            <option value="admin">Admin</option>
-                            <option value="user">User</option>
+                            <option value="ADMIN">Admin</option>
+                            <option value="STUDENT">Student</option>
                           </select>
                           <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none">
                             <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -312,99 +384,108 @@ export default function UserSetupPage() {
                   </div>
 
                   <div className="bg-white rounded-lg shadow-sm border border-gray-100">
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="bg-gray-50 border-b border-gray-100">
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                              <input
-                                type="checkbox"
-                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                onChange={(e) => {
-                                  if (e.target.checked) {
-                                    setSelectedUsers(mockUsers.map(user => user.id));
-                                  } else {
-                                    setSelectedUsers([]);
-                                  }
-                                }}
-                              />
-                            </th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
-                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-gray-100">
-                          {mockUsers.map((user) => (
-                            <tr key={user.id} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap">
+                    {isLoadingUsers ? (
+                      <div className="p-8 text-center">
+                        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                        <p className="mt-2 text-gray-500">Loading users...</p>
+                      </div>
+                    ) : users.length === 0 ? (
+                      <div className="p-8 text-center">
+                        <p className="text-gray-500">No users found</p>
+                      </div>
+                    ) : (
+                      <div className="overflow-x-auto">
+                        <table className="w-full">
+                          <thead>
+                            <tr className="bg-gray-50 border-b border-gray-100">
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                                 <input
                                   type="checkbox"
                                   className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                                  checked={selectedUsers.includes(user.id)}
                                   onChange={(e) => {
                                     if (e.target.checked) {
-                                      setSelectedUsers([...selectedUsers, user.id]);
+                                      setSelectedUsers(users.map(user => user.id));
                                     } else {
-                                      setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                                      setSelectedUsers([]);
                                     }
                                   }}
                                 />
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <div className="flex items-center">
-                                  <div className="h-10 w-10 flex-shrink-0">
-                                    <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                                      <span className="text-blue-600 font-medium">
-                                        {user.firstName[0]}{user.lastName[0]}
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="ml-4">
-                                    <div className="text-sm font-medium text-gray-900">
-                                      {user.firstName} {user.lastName}
-                                    </div>
-                                    <div className="text-sm text-gray-500">{user.username}</div>
-                                  </div>
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge color={user.role === 'Admin' ? 'blue' : 'gray'}>
-                                  {user.role}
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap">
-                                <Badge color={user.status === 'Active' ? 'green' : 'red'}>
-                                  {user.status}
-                                </Badge>
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                {user.lastLogin}
-                              </td>
-                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                <div className="flex space-x-2">
-                                  <button className="p-1 hover:bg-gray-100 rounded-full">
-                                    <Edit2 className="w-4 h-4 text-gray-500" />
-                                  </button>
-                                  <button className="p-1 hover:bg-gray-100 rounded-full">
-                                    {user.status === 'Active' ? (
-                                      <UserX className="w-4 h-4 text-gray-500" />
-                                    ) : (
-                                      <UserCheck className="w-4 h-4 text-gray-500" />
-                                    )}
-                                  </button>
-                                  <button className="p-1 hover:bg-gray-100 rounded-full">
-                                    <Trash2 className="w-4 h-4 text-gray-500" />
-                                  </button>
-                                </div>
-                              </td>
+                              </th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">User</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Last Login</th>
+                              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                             </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                          </thead>
+                          <tbody className="divide-y divide-gray-100">
+                            {users.map((user) => (
+                              <tr key={user.id} className="hover:bg-gray-50">
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <input
+                                    type="checkbox"
+                                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                                    checked={selectedUsers.includes(user.id)}
+                                    onChange={(e) => {
+                                      if (e.target.checked) {
+                                        setSelectedUsers([...selectedUsers, user.id]);
+                                      } else {
+                                        setSelectedUsers(selectedUsers.filter(id => id !== user.id));
+                                      }
+                                    }}
+                                  />
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <div className="flex items-center">
+                                    <div className="h-10 w-10 flex-shrink-0">
+                                      <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
+                                        <span className="text-blue-600 font-medium">
+                                          {user.firstName[0]}{user.lastName[0]}
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="ml-4">
+                                      <div className="text-sm font-medium text-gray-900">
+                                        {user.firstName} {user.lastName}
+                                      </div>
+                                      <div className="text-sm text-gray-500">{user.username}</div>
+                                    </div>
+                                  </div>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Badge color={user.role === 'ADMIN' ? 'blue' : 'gray'}>
+                                    {user.role === 'ADMIN' ? 'Admin' : 'Student'}
+                                  </Badge>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap">
+                                  <Badge color="green">Active</Badge>
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  {new Date(user.createdAt).toLocaleDateString()}
+                                </td>
+                                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                  <div className="flex space-x-2">
+                                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                                      <Edit2 className="w-4 h-4 text-gray-500" />
+                                    </button>
+                                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                                      {user.status === 'Active' ? (
+                                        <UserX className="w-4 h-4 text-gray-500" />
+                                      ) : (
+                                        <UserCheck className="w-4 h-4 text-gray-500" />
+                                      )}
+                                    </button>
+                                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                                      <Trash2 className="w-4 h-4 text-gray-500" />
+                                    </button>
+                                  </div>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
                   </div>
 
                   {selectedUsers.length > 0 && (
@@ -419,15 +500,50 @@ export default function UserSetupPage() {
                       <Button
                         size="sm"
                         color="red"
+                        onClick={handleDeleteSelected}
                       >
                         Delete Selected
                       </Button>
                       <Button
                         size="sm"
                         color="blue"
+                        onClick={() => setShowRoleModal(true)}
                       >
                         Change Role
                       </Button>
+                    </div>
+                  )}
+
+                  {/* Role Change Modal */}
+                  {showRoleModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-lg p-6 max-w-sm w-full">
+                        <h3 className="text-lg font-medium mb-4">Change User Role</h3>
+                        <select
+                          value={selectedRole}
+                          onChange={(e) => setSelectedRole(e.target.value)}
+                          className="w-full mb-4 p-2 border rounded"
+                        >
+                          <option value="ADMIN">Admin</option>
+                          <option value="STUDENT">Student</option>
+                        </select>
+                        <div className="flex justify-end space-x-2">
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            onClick={() => setShowRoleModal(false)}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            color="blue"
+                            onClick={handleChangeRole}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   )}
                 </div>
