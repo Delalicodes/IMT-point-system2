@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
-import { Card, Tab, TabList, TabGroup, TabPanel, TabPanels, TextInput, Select, SelectItem, Badge, Button } from '@tremor/react';
+import { Tab, TabList, TabGroup, TabPanel, TabPanels, TextInput, Select, SelectItem, Badge, Button } from '@tremor/react';
 import { UserPlus, Users, Settings, Lock, Search, Filter, MoreVertical, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
 
 interface User {
@@ -265,14 +265,9 @@ export default function UserSetupPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-semibold text-gray-900">User Setup</h1>
-          <p className="text-gray-500 mt-1">Manage users and permissions</p>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+    <div className="min-h-screen bg-white w-full">
+      <div className="max-w-7xl mx-auto py-6">
+        <div className="bg-white w-full">
           <TabGroup>
             <div className="border-b border-gray-100">
               <TabList className="flex">
@@ -301,7 +296,7 @@ export default function UserSetupPage() {
             </div>
             <TabPanels>
               <TabPanel>
-                <div className="p-6">
+                <div className="p-6 bg-white">
                   <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
                     <div className="bg-white rounded-lg">
                       <div className="flex items-center space-x-2 mb-6">
@@ -428,7 +423,7 @@ export default function UserSetupPage() {
                 </div>
               </TabPanel>
               <TabPanel>
-                <div className="p-6">
+                <div className="p-6 bg-white">
                   <div className="mb-8">
                     <div className="flex justify-between items-center mb-4">
                       <h2 className="text-xl font-semibold text-gray-900">Manage Users</h2>
@@ -739,9 +734,11 @@ export default function UserSetupPage() {
                 </div>
               </TabPanel>
               <TabPanel>
-                <div className="p-6 text-center">
-                  <Lock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
-                  <p className="text-gray-500">Permission management features coming soon...</p>
+                <div className="p-6 bg-white">
+                  <div className="text-center">
+                    <Lock className="w-12 h-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-gray-500">Permission management features coming soon...</p>
+                  </div>
                 </div>
               </TabPanel>
             </TabPanels>
