@@ -18,22 +18,24 @@ interface User {
 }
 
 export default function UserSetupPage() {
+  const [activeTab, setActiveTab] = useState(0);
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
     username: '',
     password: '',
     confirmPassword: '',
+    role: 'STUDENT',
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [roleFilter, setRoleFilter] = useState('all');
-  const [selectedUsers, setSelectedUsers] = useState<number[]>([]);
+  const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedRole, setSelectedRole] = useState('STUDENT');
-  const [showRoleModal, setShowRoleModal] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -57,6 +59,7 @@ export default function UserSetupPage() {
           lastName: formData.lastName,
           username: formData.username,
           password: formData.password,
+          role: formData.role,
         }),
       });
 
@@ -73,6 +76,7 @@ export default function UserSetupPage() {
         username: '',
         password: '',
         confirmPassword: '',
+        role: 'STUDENT',
       });
     } catch (error: any) {
       toast.error(error.message);
@@ -149,7 +153,7 @@ export default function UserSetupPage() {
         },
         body: JSON.stringify({ 
           userIds: selectedUsers,
-          role: selectedRole 
+          role: formData.role 
         }),
       });
 
@@ -159,15 +163,105 @@ export default function UserSetupPage() {
 
       setUsers(users.map(user => 
         selectedUsers.includes(user.id) 
-          ? { ...user, role: selectedRole }
+          ? { ...user, role: formData.role }
           : user
       ));
       setSelectedUsers([]);
-      setShowRoleModal(false);
+      setActiveTab(1);
       toast.success('User roles updated successfully');
     } catch (error) {
       toast.error('Failed to update user roles');
     }
+  };
+
+  // Filter users based on search and filters
+  const filteredUsers = users.filter(user => {
+    const matchesSearch = 
+      user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const matchesRole = roleFilter === 'all' || user.role === roleFilter;
+
+    return matchesSearch && matchesRole;
+  });
+
+  // Handle single user delete
+  const handleDeleteUser = async (userId: string) => {
+    if (!confirm('Are you sure you want to delete this user?')) return;
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete user');
+      }
+
+      setUsers(users.filter(user => user.id !== userId));
+      toast.success('User deleted successfully');
+    } catch (error) {
+      toast.error('Failed to delete user');
+    }
+  };
+
+  // Handle edit user
+  const handleEditUser = async (values: any) => {
+    if (!editingUser) return;
+
+    try {
+      const response = await fetch(`/api/users/${editingUser.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(values),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update user');
+      }
+
+      const updatedUser = await response.json();
+      setUsers(users.map(user => 
+        user.id === editingUser.id ? updatedUser : user
+      ));
+      setShowEditModal(false);
+      setEditingUser(null);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        username: '',
+        password: '',
+        confirmPassword: '',
+        role: 'STUDENT',
+      });
+      toast.success('User updated successfully');
+    } catch (error) {
+      toast.error('Failed to update user');
+    }
+  };
+
+  // Set form data when editing user
+  useEffect(() => {
+    if (editingUser) {
+      setFormData({
+        firstName: editingUser.firstName,
+        lastName: editingUser.lastName,
+        username: editingUser.username,
+        password: '',
+        confirmPassword: '',
+        role: editingUser.role,
+      });
+    }
+  }, [editingUser]);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setRoleFilter('all');
   };
 
   return (
@@ -182,15 +276,24 @@ export default function UserSetupPage() {
           <TabGroup>
             <div className="border-b border-gray-100">
               <TabList className="flex">
-                <Tab className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200">
+                <Tab 
+                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
+                  onClick={() => setActiveTab(0)}
+                >
                   <UserPlus className="w-4 h-4" />
                   <span>Create User</span>
                 </Tab>
-                <Tab className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200">
+                <Tab 
+                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
+                  onClick={() => setActiveTab(1)}
+                >
                   <Users className="w-4 h-4" />
                   <span>Manage Users</span>
                 </Tab>
-                <Tab className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200">
+                <Tab 
+                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
+                  onClick={() => setActiveTab(2)}
+                >
                   <Lock className="w-4 h-4" />
                   <span>Permissions</span>
                 </Tab>
@@ -292,6 +395,23 @@ export default function UserSetupPage() {
                             placeholder="Confirm password"
                           />
                         </div>
+
+                        <div>
+                          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                            Role
+                          </label>
+                          <select
+                            id="role"
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            required
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          >
+                            <option value="STUDENT">Student</option>
+                            <option value="ADMIN">Admin</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
@@ -310,16 +430,8 @@ export default function UserSetupPage() {
               <TabPanel>
                 <div className="p-6">
                   <div className="mb-8">
-                    <div className="flex justify-between items-center mb-6">
+                    <div className="flex justify-between items-center mb-4">
                       <h2 className="text-xl font-semibold text-gray-900">Manage Users</h2>
-                      <Button
-                        size="sm"
-                        color="blue"
-                        icon={UserPlus}
-                        className="shadow-sm hover:shadow-md transition-shadow"
-                      >
-                        Add New User
-                      </Button>
                     </div>
                     
                     <div className="flex flex-col md:flex-row gap-4 items-end">
@@ -376,6 +488,7 @@ export default function UserSetupPage() {
                         <button 
                           className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors border border-gray-200 text-gray-500 hover:text-gray-700"
                           title="Clear Filters"
+                          onClick={clearFilters}
                         >
                           <Filter className="w-5 h-5" />
                         </button>
@@ -419,7 +532,7 @@ export default function UserSetupPage() {
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-100">
-                            {users.map((user) => (
+                            {filteredUsers.map((user) => (
                               <tr key={user.id} className="hover:bg-gray-50">
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <input
@@ -465,17 +578,19 @@ export default function UserSetupPage() {
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                   <div className="flex space-x-2">
-                                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                                    <button 
+                                      className="p-1 hover:bg-gray-100 rounded-full"
+                                      onClick={() => {
+                                        setEditingUser(user);
+                                        setShowEditModal(true);
+                                      }}
+                                    >
                                       <Edit2 className="w-4 h-4 text-gray-500" />
                                     </button>
-                                    <button className="p-1 hover:bg-gray-100 rounded-full">
-                                      {user.status === 'Active' ? (
-                                        <UserX className="w-4 h-4 text-gray-500" />
-                                      ) : (
-                                        <UserCheck className="w-4 h-4 text-gray-500" />
-                                      )}
-                                    </button>
-                                    <button className="p-1 hover:bg-gray-100 rounded-full">
+                                    <button 
+                                      className="p-1 hover:bg-gray-100 rounded-full"
+                                      onClick={() => handleDeleteUser(user.id)}
+                                    >
                                       <Trash2 className="w-4 h-4 text-gray-500" />
                                     </button>
                                   </div>
@@ -507,42 +622,117 @@ export default function UserSetupPage() {
                       <Button
                         size="sm"
                         color="blue"
-                        onClick={() => setShowRoleModal(true)}
+                        onClick={() => setActiveTab(0)}
                       >
                         Change Role
                       </Button>
                     </div>
                   )}
 
-                  {/* Role Change Modal */}
-                  {showRoleModal && (
+                  {/* Edit User Modal */}
+                  {showEditModal && editingUser && (
                     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white rounded-lg p-6 max-w-sm w-full">
-                        <h3 className="text-lg font-medium mb-4">Change User Role</h3>
-                        <select
-                          value={selectedRole}
-                          onChange={(e) => setSelectedRole(e.target.value)}
-                          className="w-full mb-4 p-2 border rounded"
-                        >
-                          <option value="ADMIN">Admin</option>
-                          <option value="STUDENT">Student</option>
-                        </select>
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            size="sm"
-                            variant="secondary"
-                            onClick={() => setShowRoleModal(false)}
-                          >
-                            Cancel
-                          </Button>
-                          <Button
-                            size="sm"
-                            color="blue"
-                            onClick={handleChangeRole}
-                          >
-                            Save
-                          </Button>
-                        </div>
+                      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-lg font-medium mb-4">Edit User: {editingUser.firstName} {editingUser.lastName}</h3>
+                        <form onSubmit={(e) => {
+                          e.preventDefault();
+                          handleEditUser(formData);
+                        }} className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              First Name
+                            </label>
+                            <input
+                              type="text"
+                              name="firstName"
+                              value={formData.firstName}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Last Name
+                            </label>
+                            <input
+                              type="text"
+                              name="lastName"
+                              value={formData.lastName}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Username
+                            </label>
+                            <input
+                              type="text"
+                              name="username"
+                              value={formData.username}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Password (leave blank to keep current)
+                            </label>
+                            <input
+                              type="password"
+                              name="password"
+                              value={formData.password}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Role
+                            </label>
+                            <select
+                              name="role"
+                              value={formData.role}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            >
+                              <option value="STUDENT">Student</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          </div>
+                          <div className="flex justify-end space-x-2 mt-4">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setShowEditModal(false);
+                                setEditingUser(null);
+                                setFormData({
+                                  firstName: '',
+                                  lastName: '',
+                                  username: '',
+                                  password: '',
+                                  confirmPassword: '',
+                                  role: 'STUDENT',
+                                });
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              color="blue"
+                              type="submit"
+                              disabled={isLoading}
+                            >
+                              {isLoading ? 'Saving...' : 'Save Changes'}
+                            </Button>
+                          </div>
+                        </form>
                       </div>
                     </div>
                   )}
