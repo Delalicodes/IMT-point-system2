@@ -6,7 +6,10 @@ import {
   Users,
   MessageCircle,
   Award,
-  ChevronDown 
+  ChevronDown,
+  Wrench,
+  UserCog,
+  Medal
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -18,9 +21,9 @@ const menuItems = [
     label: 'Setups', 
     href: '#',
     subItems: [
-      { label: 'General Setup', href: '/dashboard/setups/general' },
-      { label: 'User Setup', href: '/dashboard/setups/user' },
-      { label: 'Points Setup', href: '/dashboard/setups/points' },
+      { icon: Wrench, label: 'General Setup', href: '/dashboard/setups/general' },
+      { icon: UserCog, label: 'User Setup', href: '/dashboard/setups/user' },
+      { icon: Medal, label: 'Points Setup', href: '/dashboard/setups/points' },
     ]
   },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
@@ -75,20 +78,24 @@ export default function Sidebar() {
                     />
                   </button>
                   {openSetup && (
-                    <div className="ml-12 mt-2 space-y-2">
-                      {item.subItems.map((subItem) => (
-                        <button
-                          key={subItem.href}
-                          onClick={() => handleNavigation(subItem.href)}
-                          className={`block w-full text-left py-2 px-3 rounded-lg transition-colors ${
-                            pathname === subItem.href
-                              ? 'bg-white/10 text-white'
-                              : 'text-white/60 hover:bg-white/5 hover:text-white'
-                          }`}
-                        >
-                          {subItem.label}
-                        </button>
-                      ))}
+                    <div className="mt-2 space-y-2">
+                      {item.subItems.map((subItem) => {
+                        const SubIcon = subItem.icon;
+                        return (
+                          <button
+                            key={subItem.href}
+                            onClick={() => handleNavigation(subItem.href)}
+                            className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
+                              pathname === subItem.href
+                                ? 'bg-white/10 text-white'
+                                : 'text-white/60 hover:bg-white/5 hover:text-white'
+                            }`}
+                          >
+                            <SubIcon size={20} />
+                            <span>{subItem.label}</span>
+                          </button>
+                        );
+                      })}
                     </div>
                   )}
                 </div>
