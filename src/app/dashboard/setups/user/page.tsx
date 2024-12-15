@@ -23,9 +23,12 @@ export default function UserSetupPage() {
     firstName: '',
     lastName: '',
     username: '',
+    email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
+    courseId: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -58,6 +61,9 @@ export default function UserSetupPage() {
           firstName: formData.firstName,
           lastName: formData.lastName,
           username: formData.username,
+          email: formData.email,
+          phoneNumber: formData.phoneNumber,
+          courseId: formData.courseId,
           password: formData.password,
           role: formData.role,
         }),
@@ -74,9 +80,12 @@ export default function UserSetupPage() {
         firstName: '',
         lastName: '',
         username: '',
+        email: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
+        courseId: ''
       });
     } catch (error: any) {
       toast.error(error.message);
@@ -233,9 +242,12 @@ export default function UserSetupPage() {
         firstName: '',
         lastName: '',
         username: '',
+        email: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
+        courseId: ''
       });
       toast.success('User updated successfully');
     } catch (error) {
@@ -250,6 +262,9 @@ export default function UserSetupPage() {
         firstName: editingUser.firstName,
         lastName: editingUser.lastName,
         username: editingUser.username,
+        email: editingUser.email,
+        phoneNumber: editingUser.phoneNumber,
+        courseId: editingUser.courseId,
         password: '',
         confirmPassword: '',
         role: editingUser.role,
@@ -360,6 +375,76 @@ export default function UserSetupPage() {
                         </div>
 
                         <div>
+                          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
+                            Role
+                          </label>
+                          <select
+                            id="role"
+                            name="role"
+                            value={formData.role}
+                            onChange={handleChange}
+                            required
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                          >
+                            <option value="STUDENT">Student</option>
+                            <option value="ADMIN">Admin</option>
+                          </select>
+                        </div>
+
+                        {formData.role === 'STUDENT' && (
+                          <>
+                            <div>
+                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
+                                Email
+                              </label>
+                              <input
+                                type="email"
+                                id="email"
+                                name="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Enter email address"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
+                                Phone Number
+                              </label>
+                              <input
+                                type="tel"
+                                id="phoneNumber"
+                                name="phoneNumber"
+                                value={formData.phoneNumber}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                placeholder="Enter phone number"
+                              />
+                            </div>
+
+                            <div>
+                              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700 mb-1">
+                                Course
+                              </label>
+                              <select
+                                id="courseId"
+                                name="courseId"
+                                value={formData.courseId}
+                                onChange={handleChange}
+                                required
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                              >
+                                <option value="">Select a course</option>
+                                {/* We'll add course options here later */}
+                              </select>
+                            </div>
+                          </>
+                        )}
+
+                        <div>
                           <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
                             Password
                           </label>
@@ -389,23 +474,6 @@ export default function UserSetupPage() {
                             className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
                             placeholder="Confirm password"
                           />
-                        </div>
-
-                        <div>
-                          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                            Role
-                          </label>
-                          <select
-                            id="role"
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="STUDENT">Student</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
                         </div>
                       </div>
                     </div>
@@ -674,6 +742,47 @@ export default function UserSetupPage() {
                           </div>
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Email
+                            </label>
+                            <input
+                              type="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              name="phoneNumber"
+                              value={formData.phoneNumber}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Course
+                            </label>
+                            <select
+                              name="courseId"
+                              value={formData.courseId}
+                              onChange={handleChange}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            >
+                              <option value="">Select a course</option>
+                              {/* We'll add course options here later */}
+                            </select>
+                          </div>
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
                               Password (leave blank to keep current)
                             </label>
                             <input
@@ -710,9 +819,12 @@ export default function UserSetupPage() {
                                   firstName: '',
                                   lastName: '',
                                   username: '',
+                                  email: '',
+                                  phoneNumber: '',
                                   password: '',
                                   confirmPassword: '',
                                   role: 'STUDENT',
+                                  courseId: ''
                                 });
                               }}
                             >

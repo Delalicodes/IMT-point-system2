@@ -9,7 +9,8 @@ import {
   ChevronDown,
   Wrench,
   UserCog,
-  Medal
+  Medal,
+  BookOpen
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
@@ -24,6 +25,7 @@ const menuItems = [
       { icon: Wrench, label: 'General Setup', href: '/dashboard/setups/general' },
       { icon: UserCog, label: 'User Setup', href: '/dashboard/setups/user' },
       { icon: Medal, label: 'Points Setup', href: '/dashboard/setups/points' },
+      { icon: BookOpen, label: 'Course Setup', href: '/dashboard/setups/course' },
     ]
   },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
