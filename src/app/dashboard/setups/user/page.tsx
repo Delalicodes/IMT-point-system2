@@ -39,6 +39,8 @@ export default function UserSetupPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [showRoleModal, setShowRoleModal] = useState(false);
+  const [selectedRole, setSelectedRole] = useState('');
   const router = useRouter();
   const { user } = useAuth();
 
@@ -152,7 +154,7 @@ export default function UserSetupPage() {
 
   // Change role for selected users
   const handleChangeRole = async () => {
-    if (!selectedUsers.length) return;
+    if (!selectedUsers.length || !selectedRole) return;
 
     try {
       const response = await fetch('/api/users/change-role', {
@@ -162,7 +164,7 @@ export default function UserSetupPage() {
         },
         body: JSON.stringify({ 
           userIds: selectedUsers,
-          role: formData.role 
+          role: selectedRole 
         }),
       });
 
@@ -172,11 +174,10 @@ export default function UserSetupPage() {
 
       setUsers(users.map(user => 
         selectedUsers.includes(user.id) 
-          ? { ...user, role: formData.role }
+          ? { ...user, role: selectedRole }
           : user
       ));
       setSelectedUsers([]);
-      setActiveTab(1);
       toast.success('User roles updated successfully');
     } catch (error) {
       toast.error('Failed to update user roles');
@@ -685,7 +686,10 @@ export default function UserSetupPage() {
                       <Button
                         size="sm"
                         color="blue"
-                        onClick={() => setActiveTab(0)}
+                        onClick={() => {
+                          setSelectedRole('');
+                          setShowRoleModal(true);
+                        }}
                       >
                         Change Role
                       </Button>
@@ -840,6 +844,57 @@ export default function UserSetupPage() {
                             </Button>
                           </div>
                         </form>
+                      </div>
+                    </div>
+                  )}
+                  {/* Role Change Modal */}
+                  {showRoleModal && (
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                      <div className="bg-white rounded-lg p-6 max-w-md w-full">
+                        <h3 className="text-lg font-medium mb-4">Change User Role</h3>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Select New Role
+                            </label>
+                            <select
+                              value={selectedRole}
+                              onChange={(e) => setSelectedRole(e.target.value)}
+                              className="w-full px-3 py-2 border rounded-lg"
+                              required
+                            >
+                              <option value="">Select a role</option>
+                              <option value="STUDENT">Student</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          </div>
+                          <div className="flex justify-end space-x-2 mt-4">
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              onClick={() => {
+                                setShowRoleModal(false);
+                                setSelectedRole('');
+                              }}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              size="sm"
+                              color="blue"
+                              onClick={() => {
+                                if (selectedRole) {
+                                  handleChangeRole();
+                                  setShowRoleModal(false);
+                                  setSelectedRole('');
+                                }
+                              }}
+                              disabled={!selectedRole}
+                            >
+                              Update Role
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}
