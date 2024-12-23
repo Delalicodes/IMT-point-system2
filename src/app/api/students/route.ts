@@ -1,7 +1,5 @@
 import { NextResponse } from 'next/server';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -9,12 +7,15 @@ export async function GET() {
       where: {
         role: 'STUDENT'
       },
-      include: {
-        course: true
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
       },
       orderBy: {
-        createdAt: 'desc'
-      }
+        firstName: 'asc',
+      },
     });
 
     return NextResponse.json(students);
