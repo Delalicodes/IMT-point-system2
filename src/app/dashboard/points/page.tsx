@@ -68,27 +68,53 @@ export default function PointsPage() {
     e.preventDefault();
     setIsLoading(true);
 
+    // Validate form data
+    if (!formData.userId) {
+      toast.error('Please select a student');
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.points) {
+      toast.error('Please enter points');
+      setIsLoading(false);
+      return;
+    }
+
+    const payload = {
+      userId: formData.userId,
+      points: Number(formData.points),
+      note: formData.note.trim(),
+    };
+
+    console.log('Submitting form with data:', payload);
+
     try {
       const response = await fetch('/api/points', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
+      const data = await response.json();
+      console.log('Response from server:', { status: response.status, data });
+
       if (!response.ok) {
-        throw new Error('Failed to add points');
+        throw new Error(data.error || 'Failed to add points');
       }
 
-      const data = await response.json();
+      // Update points list with new point
       setPoints([data, ...points]);
+      
+      // Reset form and close modal
       setFormData({ userId: '', points: 0, note: '' });
       setShowModal(false);
       toast.success('Points added successfully');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding points:', error);
-      toast.error('Failed to add points');
+      toast.error(error.message || 'Failed to add points');
     } finally {
       setIsLoading(false);
     }
@@ -170,52 +196,68 @@ export default function PointsPage() {
       </div>
 
       {/* Points History Table */}
-      <div className="bg-white rounded-lg shadow-md p-4">
-        <table className="w-full">
-          <thead>
-            <tr>
-              <th className="text-sm font-medium text-gray-700">Student</th>
-              <th className="text-sm font-medium text-gray-700">Points</th>
-              <th className="text-sm font-medium text-gray-700">Note</th>
-              <th className="text-sm font-medium text-gray-700">Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredPoints.map((point) => (
-              <tr key={point.id}>
-                <td>
-                  <div className="flex items-center">
-                    <div className="h-10 w-10 flex-shrink-0">
-                      <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                        <span className="text-indigo-600 font-medium">
-                          {point.user.firstName[0]}{point.user.lastName[0]}
-                        </span>
-                      </div>
-                    </div>
-                    <div className="ml-4">
-                      <div className="text-sm font-medium text-gray-900">
-                        {point.user.firstName} {point.user.lastName}
-                      </div>
-                    </div>
-                  </div>
-                </td>
-                <td>
-                  <span
-                    className={`text-sm font-medium ${point.points >= 0 ? 'text-emerald-600' : 'text-red-600'}`}
-                  >
-                    {point.points >= 0 ? '+' : ''}{point.points}
-                  </span>
-                </td>
-                <td>
-                  <p className="text-sm text-gray-500">{point.note || '-'}</p>
-                </td>
-                <td>
-                  <p className="text-sm text-gray-500">{new Date(point.createdAt).toLocaleDateString()}</p>
-                </td>
+      <div className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Student
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Points
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Note
+                </th>
+                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Date
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {filteredPoints.map((point) => (
+                <tr key={point.id} className="hover:bg-gray-50">
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div className="h-10 w-10 flex-shrink-0">
+                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                          <span className="text-indigo-600 font-medium">
+                            {point.user.firstName[0]}{point.user.lastName[0]}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">
+                          {point.user.firstName} {point.user.lastName}
+                        </div>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span
+                      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                        point.points >= 0 
+                          ? 'bg-green-100 text-green-800' 
+                          : 'bg-red-100 text-red-800'
+                      }`}
+                    >
+                      {point.points >= 0 ? '+' : ''}{point.points}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="text-sm text-gray-900 max-w-xs truncate">
+                      {point.note || '-'}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                    {new Date(point.createdAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {/* Add Points Modal */}
