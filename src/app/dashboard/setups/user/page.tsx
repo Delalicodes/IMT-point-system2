@@ -12,7 +12,10 @@ interface User {
   firstName: string;
   lastName: string;
   username: string;
+  email: string;
+  phoneNumber: string;
   role: string;
+  courseId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -754,6 +757,17 @@ export default function UserSetupPage() {
                                       className="p-1 hover:bg-gray-100 rounded-full"
                                       onClick={() => {
                                         setEditingUser(user);
+                                        setFormData({
+                                          firstName: user.firstName,
+                                          lastName: user.lastName,
+                                          username: user.username,
+                                          email: user.email || '',
+                                          phoneNumber: user.phoneNumber || '',
+                                          password: '',
+                                          confirmPassword: '',
+                                          role: user.role,
+                                          courseId: user.courseId || ''
+                                        });
                                         setShowEditModal(true);
                                       }}
                                     >
