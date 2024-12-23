@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Tab, TabList, TabGroup, TabPanel, TabPanels, TextInput, Select, SelectItem, Badge, Button } from '@tremor/react';
-import { UserPlus, Users, Settings, Lock, Search, Filter, MoreVertical, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
+import { X, User, Settings, Phone, BookOpen, Search, Filter, Users, UserPlus, Lock, MoreVertical, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
 
 interface User {
   id: string;
@@ -805,126 +805,22 @@ export default function UserSetupPage() {
 
                   {/* Edit User Modal */}
                   {showEditModal && editingUser && (
-                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                      <div className="bg-white rounded-lg p-6 max-w-md w-full">
-                        <h3 className="text-lg font-medium mb-4">Edit User: {editingUser.firstName} {editingUser.lastName}</h3>
-                        <form onSubmit={(e) => {
-                          e.preventDefault();
-                          handleEditUser(formData);
-                        }} className="space-y-4">
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              First Name
-                            </label>
-                            <input
-                              type="text"
-                              name="firstName"
-                              value={formData.firstName}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Last Name
-                            </label>
-                            <input
-                              type="text"
-                              name="lastName"
-                              value={formData.lastName}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Username
-                            </label>
-                            <input
-                              type="text"
-                              name="username"
-                              value={formData.username}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Email
-                            </label>
-                            <input
-                              type="email"
-                              name="email"
-                              value={formData.email}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone Number
-                            </label>
-                            <input
-                              type="tel"
-                              name="phoneNumber"
-                              value={formData.phoneNumber}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Course
-                            </label>
-                            <select
-                              name="courseId"
-                              value={formData.courseId}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            >
-                              <option value="">Select a course</option>
-                              {courses.map(course => (
-                                <option key={course.id} value={course.id}>{course.name}</option>
-                              ))}
-                            </select>
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Password (leave blank to keep current)
-                            </label>
-                            <input
-                              type="password"
-                              name="password"
-                              value={formData.password}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Role
-                            </label>
-                            <select
-                              name="role"
-                              value={formData.role}
-                              onChange={handleChange}
-                              className="w-full px-3 py-2 border rounded-lg"
-                              required
-                            >
-                              <option value="STUDENT">Student</option>
-                              <option value="ADMIN">Admin</option>
-                            </select>
-                          </div>
-                          <div className="flex justify-end space-x-2 mt-4">
-                            <Button
-                              size="sm"
-                              variant="secondary"
+                    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                      <div className="bg-white rounded-xl shadow-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6 border-b border-gray-100">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center space-x-3">
+                              <div className="h-10 w-10 rounded-full bg-indigo-50 flex items-center justify-center">
+                                <span className="text-indigo-600 font-medium">
+                                  {editingUser.firstName[0]}{editingUser.lastName[0]}
+                                </span>
+                              </div>
+                              <div>
+                                <h3 className="text-lg font-semibold text-gray-900">Edit User Profile</h3>
+                                <p className="text-sm text-gray-500">{editingUser.username}</p>
+                              </div>
+                            </div>
+                            <button
                               onClick={() => {
                                 setShowEditModal(false);
                                 setEditingUser(null);
@@ -940,19 +836,196 @@ export default function UserSetupPage() {
                                   courseId: ''
                                 });
                               }}
+                              className="text-gray-400 hover:text-gray-500"
+                            >
+                              <X className="h-5 w-5" />
+                            </button>
+                          </div>
+                        </div>
+                        
+                        <form 
+                          id="edit-user-form"
+                          onSubmit={(e) => {
+                            e.preventDefault();
+                            handleEditUser(formData);
+                          }} 
+                          className="p-6 space-y-6"
+                        >
+                          {/* Personal Information */}
+                          <div className="space-y-4">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <User className="w-5 h-5 text-indigo-600" />
+                              <h4 className="text-sm font-medium text-gray-900">Personal Information</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">First Name</label>
+                                <input
+                                  type="text"
+                                  name="firstName"
+                                  value={formData.firstName}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Last Name</label>
+                                <input
+                                  type="text"
+                                  name="lastName"
+                                  value={formData.lastName}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Account Information */}
+                          <div className="space-y-4">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <Settings className="w-5 h-5 text-indigo-600" />
+                              <h4 className="text-sm font-medium text-gray-900">Account Information</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                                <input
+                                  type="text"
+                                  name="username"
+                                  value={formData.username}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                                <select
+                                  name="role"
+                                  value={formData.role}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                >
+                                  <option value="STUDENT">Student</option>
+                                  <option value="ADMIN">Admin</option>
+                                </select>
+                              </div>
+                              <div className="col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+                                <input
+                                  type="password"
+                                  name="password"
+                                  value={formData.password}
+                                  onChange={handleChange}
+                                  placeholder="Leave blank to keep current password"
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Contact Information */}
+                          <div className="space-y-4">
+                            <div className="flex items-center space-x-2 mb-4">
+                              <Phone className="w-5 h-5 text-indigo-600" />
+                              <h4 className="text-sm font-medium text-gray-900">Contact Information</h4>
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                                <input
+                                  type="email"
+                                  name="email"
+                                  value={formData.email}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
+                                <input
+                                  type="tel"
+                                  name="phoneNumber"
+                                  value={formData.phoneNumber}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Course Information */}
+                          {formData.role === 'STUDENT' && (
+                            <div className="space-y-4">
+                              <div className="flex items-center space-x-2 mb-4">
+                                <BookOpen className="w-5 h-5 text-indigo-600" />
+                                <h4 className="text-sm font-medium text-gray-900">Course Information</h4>
+                              </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Course</label>
+                                <select
+                                  name="courseId"
+                                  value={formData.courseId}
+                                  onChange={handleChange}
+                                  className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                                  required
+                                >
+                                  <option value="">Select a course</option>
+                                  {courses.map(course => (
+                                    <option key={course.id} value={course.id}>{course.code} - {course.name}</option>
+                                  ))}
+                                </select>
+                              </div>
+                            </div>
+                          )}
+                        </form>
+
+                        {/* Fixed bottom action bar */}
+                        <div className="border-t border-gray-100 p-4 bg-gray-50 rounded-b-xl">
+                          <div className="flex items-center justify-end space-x-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setShowEditModal(false);
+                                setEditingUser(null);
+                                setFormData({
+                                  firstName: '',
+                                  lastName: '',
+                                  username: '',
+                                  email: '',
+                                  phoneNumber: '',
+                                  password: '',
+                                  confirmPassword: '',
+                                  role: 'STUDENT',
+                                  courseId: ''
+                                });
+                              }}
+                              className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                             >
                               Cancel
-                            </Button>
-                            <Button
-                              size="sm"
-                              color="blue"
+                            </button>
+                            <button
                               type="submit"
-                              disabled={isLoading}
+                              form="edit-user-form"
+                              className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
                             >
-                              {isLoading ? 'Saving...' : 'Save Changes'}
-                            </Button>
+                              {isLoading ? (
+                                <>
+                                  <span className="inline-block animate-spin mr-2">⟳</span>
+                                  Saving Changes...
+                                </>
+                              ) : (
+                                'Save Changes'
+                              )}
+                            </button>
                           </div>
-                        </form>
+                        </div>
                       </div>
                     </div>
                   )}
