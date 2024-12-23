@@ -87,27 +87,14 @@ export default function DashboardPage() {
     <div className="bg-white p-6 rounded-lg shadow-sm">
       {/* Header with filters and top students */}
       <div className="mb-6">
-        <div className="flex justify-between items-center mb-6">
-          <div className="flex items-center gap-8">
-            <h2 className="text-lg font-medium">My Credit Card</h2>
-            <h2 className="text-lg font-medium">Statistics</h2>
-          </div>
-          <div className="flex items-center gap-4">
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date: Date) => setSelectedDate(date)}
-              dateFormat="yyyy-MM-dd"
-              className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
-              placeholderText="Select date"
-            />
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date: Date) => setSelectedDate(date)}
-              dateFormat="yyyy-MM-dd"
-              className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
-              placeholderText="Select date"
-            />
-          </div>
+        <div className="flex justify-end mb-6">
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date: Date) => setSelectedDate(date)}
+            dateFormat="yyyy-MM-dd"
+            className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
+            placeholderText="Select date"
+          />
         </div>
 
         {/* Top Students Row */}

@@ -54,7 +54,7 @@ export default function PointsPage() {
 
   const fetchPoints = async () => {
     try {
-      const response = await fetch('/api/points');
+      const response = await fetch('/api/points/all');
       if (!response.ok) throw new Error('Failed to fetch points');
       const data = await response.json();
       setPoints(data);
