@@ -1,15 +1,42 @@
 import { NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '../auth/[...nextauth]/route';
 
 // Initialize Prisma Client
 const prisma = new PrismaClient();
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const from = searchParams.get('from');
+    const userId = searchParams.get('userId');
+
+    let whereClause: any = {};
+
+    // Add date filter if 'from' parameter exists
+    if (from) {
+      whereClause.createdAt = {
+        gte: new Date(from)
+      };
+    }
+
+    // Add user filter if userId is provided or if user is not admin
+    if (userId || session.user.role !== 'ADMIN') {
+      whereClause.userId = userId || session.user.id;
+    }
+
     const points = await prisma.point.findMany({
+      where: whereClause,
       include: {
         user: {
           select: {
+            id: true,
             firstName: true,
             lastName: true,
           },
@@ -32,6 +59,11 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
     console.log('Received request body:', body);
 
@@ -52,9 +84,9 @@ export async function POST(request: Request) {
       );
     }
 
-    // First check if user exists
+    // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { id: body.userId }
+      where: { id: body.userId },
     });
 
     if (!user) {
@@ -65,13 +97,12 @@ export async function POST(request: Request) {
       );
     }
 
-    console.log('Creating point for user:', user.firstName, user.lastName);
-
-    const newPoint = await prisma.point.create({
+    // Create point
+    const point = await prisma.point.create({
       data: {
-        userId: body.userId,
         points: body.points,
         note: body.note || '',
+        userId: body.userId,
       },
       include: {
         user: {
@@ -83,12 +114,11 @@ export async function POST(request: Request) {
       },
     });
 
-    console.log('Created point:', newPoint);
-    return NextResponse.json(newPoint);
+    return NextResponse.json(point);
   } catch (error) {
     console.error('Error creating point:', error);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to create point' },
+      { error: 'Failed to create point' },
       { status: 500 }
     );
   } finally {
