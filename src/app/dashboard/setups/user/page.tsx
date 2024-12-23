@@ -73,7 +73,7 @@ export default function UserSetupPage() {
 
     setIsLoading(true);
     try {
-      const response = await fetch('/api/students/create', {
+      const response = await fetch('/api/users/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -96,7 +96,10 @@ export default function UserSetupPage() {
         throw new Error(data.message || 'Something went wrong');
       }
 
-      toast.success('Student created successfully');
+      // Add the new user to the users list
+      setUsers(prevUsers => [data, ...prevUsers]);
+
+      toast.success('User created successfully');
       setFormData({
         firstName: '',
         lastName: '',
@@ -108,6 +111,9 @@ export default function UserSetupPage() {
         role: 'STUDENT',
         courseId: ''
       });
+
+      // Switch to manage users tab
+      handleTabChange(1);
     } catch (error: any) {
       toast.error(error.message);
     } finally {
