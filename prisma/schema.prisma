@@ -14,19 +14,19 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(uuid())
-  firstName     String
-  lastName      String
-  username      String    @unique
-  email         String?   // Optional for admin
-  phoneNumber   String?   // Optional for admin
-  password      String
-  role          String    @default("STUDENT")
-  courseId      String?   // Only for students
-  course        Course?   @relation(fields: [courseId], references: [id])
-  profileImage  String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id          String    @id @default(cuid())
+  firstName   String
+  lastName    String
+  username    String    @unique
+  password    String
+  email       String?
+  phoneNumber String?
+  role        String    @default("STUDENT")
+  status      String    @default("ACTIVE")
+  courseId    String?
+  course      Course?   @relation(fields: [courseId], references: [id])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([role])
 }
