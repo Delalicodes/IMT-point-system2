@@ -17,7 +17,6 @@ interface Student {
   course: {
     id: string;
     name: string;
-    code: string;
   } | null;
 }
 
@@ -238,7 +237,7 @@ export default function StudentsPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
-                        {student.course?.code || 'No Course'}
+                        {student.course?.name || 'No Course'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -348,7 +347,7 @@ export default function StudentsPage() {
                       <div className="flex items-center space-x-3 text-sm">
                         <MapPin className="h-5 w-5 text-gray-400" />
                         <span className="text-gray-900">
-                          {selectedStudent.course?.code || 'N/A'}
+                          {selectedStudent.course?.name || 'N/A'}
                         </span>
                       </div>
                     </div>

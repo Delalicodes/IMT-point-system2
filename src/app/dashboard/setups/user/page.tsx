@@ -20,7 +20,8 @@ interface User {
 interface Course {
   id: string;
   name: string;
-  code: string;
+  description?: string;
+  subjects: string;
 }
 
 export default function UserSetupPage() {
@@ -559,7 +560,7 @@ export default function UserSetupPage() {
                               </option>
                               {!isLoadingCourses && courses.map(course => (
                                 <option key={course.id} value={course.id}>
-                                  {course.code} - {course.name}
+                                  {course.name}
                                 </option>
                               ))}
                             </select>
@@ -978,7 +979,7 @@ export default function UserSetupPage() {
                                 >
                                   <option value="">Select a course</option>
                                   {courses.map(course => (
-                                    <option key={course.id} value={course.id}>{course.code} - {course.name}</option>
+                                    <option key={course.id} value={course.id}>{course.name}</option>
                                   ))}
                                 </select>
                               </div>
