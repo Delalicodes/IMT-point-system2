@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 import { Tab, TabList, TabGroup, TabPanel, TabPanels, TextInput, Select, SelectItem, Badge, Button } from '@tremor/react';
 import { UserPlus, Users, Settings, Lock, Search, Filter, MoreVertical, Edit2, Trash2, UserCheck, UserX } from 'lucide-react';
@@ -24,7 +24,19 @@ interface Course {
 }
 
 export default function UserSetupPage() {
-  const [activeTab, setActiveTab] = useState(0);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const initialTab = parseInt(searchParams.get('tab') || '0');
+  const [activeTab, setActiveTab] = useState(initialTab);
+
+  const handleTabChange = (index: number) => {
+    setActiveTab(index);
+    // Update URL without refreshing the page
+    const url = new URL(window.location.href);
+    url.searchParams.set('tab', index.toString());
+    window.history.pushState({}, '', url.toString());
+  };
+
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -49,7 +61,6 @@ export default function UserSetupPage() {
   const [selectedRole, setSelectedRole] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
-  const router = useRouter();
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -313,28 +324,40 @@ export default function UserSetupPage() {
     <div className="min-h-screen bg-white w-full">
       <div className="max-w-7xl mx-auto py-6">
         <div className="bg-white w-full">
-          <TabGroup>
+          <TabGroup index={activeTab} onIndexChange={handleTabChange}>
             <div className="border-b border-gray-100">
               <TabList className="flex">
                 <Tab 
-                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
-                  onClick={() => setActiveTab(0)}
+                  className={`relative flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${
+                    activeTab === 0 
+                    ? 'text-indigo-600 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-gradient-to-r after:from-indigo-400 after:to-indigo-600 after:rounded-full' 
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => handleTabChange(0)}
                 >
-                  <UserPlus className="w-4 h-4" />
+                  <UserPlus className={`w-4 h-4 ${activeTab === 0 ? 'text-indigo-600' : 'text-gray-400'}`} />
                   <span>Create User</span>
                 </Tab>
                 <Tab 
-                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
-                  onClick={() => setActiveTab(1)}
+                  className={`relative flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${
+                    activeTab === 1 
+                    ? 'text-indigo-600 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-gradient-to-r after:from-indigo-400 after:to-indigo-600 after:rounded-full' 
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => handleTabChange(1)}
                 >
-                  <Users className="w-4 h-4" />
+                  <Users className={`w-4 h-4 ${activeTab === 1 ? 'text-indigo-600' : 'text-gray-400'}`} />
                   <span>Manage Users</span>
                 </Tab>
                 <Tab 
-                  className="flex items-center space-x-2 px-6 py-4 text-sm font-medium text-gray-500 hover:text-blue-600 border-b-2 border-transparent data-[state=active]:border-blue-600 data-[state=active]:text-blue-600 transition-all duration-200"
-                  onClick={() => setActiveTab(2)}
+                  className={`relative flex items-center space-x-2 px-6 py-4 text-sm font-medium transition-all duration-200 ${
+                    activeTab === 2 
+                    ? 'text-indigo-600 after:absolute after:bottom-0 after:left-0 after:h-0.5 after:w-full after:bg-gradient-to-r after:from-indigo-400 after:to-indigo-600 after:rounded-full' 
+                    : 'text-gray-500 hover:text-gray-700'
+                  }`}
+                  onClick={() => handleTabChange(2)}
                 >
-                  <Lock className="w-4 h-4" />
+                  <Lock className={`w-4 h-4 ${activeTab === 2 ? 'text-indigo-600' : 'text-gray-400'}`} />
                   <span>Permissions</span>
                 </Tab>
               </TabList>
