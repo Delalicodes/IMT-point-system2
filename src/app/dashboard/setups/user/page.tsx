@@ -364,16 +364,22 @@ export default function UserSetupPage() {
             </div>
             <TabPanels>
               <TabPanel>
-                <div className="p-6 bg-white">
-                  <form onSubmit={handleSubmit} className="max-w-2xl mx-auto space-y-6">
-                    <div className="bg-white rounded-lg">
+                <div className="p-6">
+                  <form onSubmit={handleSubmit} className="max-w-3xl mx-auto space-y-8">
+                    {/* Account Information Section */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                       <div className="flex items-center space-x-2 mb-6">
-                        <UserPlus className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-medium text-gray-900">Account Information</h3>
-                      </div>
-                      <div className="grid grid-cols-2 gap-6">
+                        <div className="p-2 bg-indigo-50 rounded-lg">
+                          <UserPlus className="w-5 h-5 text-indigo-600" />
+                        </div>
                         <div>
-                          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
+                          <h3 className="text-lg font-semibold text-gray-900">Account Information</h3>
+                          <p className="text-sm text-gray-500">Basic user information</p>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div className="space-y-1.5">
+                          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
                             First Name
                           </label>
                           <input
@@ -383,12 +389,12 @@ export default function UserSetupPage() {
                             value={formData.firstName}
                             onChange={handleChange}
                             required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                             placeholder="Enter first name"
                           />
                         </div>
-                        <div>
-                          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
+                        <div className="space-y-1.5">
+                          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
                             Last Name
                           </label>
                           <input
@@ -398,155 +404,185 @@ export default function UserSetupPage() {
                             value={formData.lastName}
                             onChange={handleChange}
                             required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
                             placeholder="Enter last name"
                           />
                         </div>
                       </div>
                     </div>
 
-                    <div className="bg-white rounded-lg">
+                    {/* Login Credentials Section */}
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                       <div className="flex items-center space-x-2 mb-6">
-                        <Lock className="w-5 h-5 text-blue-600" />
-                        <h3 className="text-lg font-medium text-gray-900">Login Credentials</h3>
+                        <div className="p-2 bg-indigo-50 rounded-lg">
+                          <Lock className="w-5 h-5 text-indigo-600" />
+                        </div>
+                        <div>
+                          <h3 className="text-lg font-semibold text-gray-900">Login Credentials</h3>
+                          <p className="text-sm text-gray-500">User authentication details</p>
+                        </div>
                       </div>
-                      <div className="space-y-4">
-                        <div>
-                          <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
-                            Username
-                          </label>
-                          <input
-                            type="text"
-                            id="username"
-                            name="username"
-                            value={formData.username}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Choose a username"
-                          />
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                              Username
+                            </label>
+                            <input
+                              type="text"
+                              id="username"
+                              name="username"
+                              value={formData.username}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                              placeholder="Choose a username"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label htmlFor="role" className="block text-sm font-medium text-gray-700">
+                              Role
+                            </label>
+                            <select
+                              id="role"
+                              name="role"
+                              value={formData.role}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                            >
+                              <option value="STUDENT">Student</option>
+                              <option value="ADMIN">Admin</option>
+                            </select>
+                          </div>
                         </div>
 
-                        <div>
-                          <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                            Role
-                          </label>
-                          <select
-                            id="role"
-                            name="role"
-                            value={formData.role}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                          >
-                            <option value="STUDENT">Student</option>
-                            <option value="ADMIN">Admin</option>
-                          </select>
-                        </div>
-
-                        {formData.role === 'STUDENT' && (
-                          <>
-                            <div>
-                              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                                Email
-                              </label>
-                              <input
-                                type="email"
-                                id="email"
-                                name="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Enter email address"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                                Phone Number
-                              </label>
-                              <input
-                                type="tel"
-                                id="phoneNumber"
-                                name="phoneNumber"
-                                value={formData.phoneNumber}
-                                onChange={handleChange}
-                                required
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                                placeholder="Enter phone number"
-                              />
-                            </div>
-
-                            <div>
-                              <label htmlFor="courseId" className="block text-sm font-medium text-gray-700 mb-1">
-                                Course
-                              </label>
-                              <select
-                                id="courseId"
-                                name="courseId"
-                                value={formData.courseId}
-                                onChange={handleChange}
-                                required
-                                disabled={isLoadingCourses}
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                              >
-                                <option value="">
-                                  {isLoadingCourses ? 'Loading courses...' : 'Select a course'}
-                                </option>
-                                {!isLoadingCourses && courses.map(course => (
-                                  <option key={course.id} value={course.id}>
-                                    {course.code} - {course.name}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                          </>
-                        )}
-
-                        <div>
-                          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                            Password
-                          </label>
-                          <input
-                            type="password"
-                            id="password"
-                            name="password"
-                            value={formData.password}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Enter password"
-                          />
-                        </div>
-
-                        <div>
-                          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                            Confirm Password
-                          </label>
-                          <input
-                            type="password"
-                            id="confirmPassword"
-                            name="confirmPassword"
-                            value={formData.confirmPassword}
-                            onChange={handleChange}
-                            required
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
-                            placeholder="Confirm password"
-                          />
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                              Password
+                            </label>
+                            <input
+                              type="password"
+                              id="password"
+                              name="password"
+                              value={formData.password}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                              placeholder="Enter password"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                              Confirm Password
+                            </label>
+                            <input
+                              type="password"
+                              id="confirmPassword"
+                              name="confirmPassword"
+                              value={formData.confirmPassword}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                              placeholder="Confirm password"
+                            />
+                          </div>
                         </div>
                       </div>
                     </div>
 
-                    <button
-                      type="submit"
-                      disabled={isLoading}
-                      className={`w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all duration-200 ${
-                        isLoading ? 'opacity-50 cursor-not-allowed' : ''
-                      }`}
-                    >
-                      {isLoading ? 'Creating...' : 'Create User'}
-                    </button>
+                    {/* Student Details Section (Conditional) */}
+                    {formData.role === 'STUDENT' && (
+                      <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                        <div className="flex items-center space-x-2 mb-6">
+                          <div className="p-2 bg-indigo-50 rounded-lg">
+                            <Users className="w-5 h-5 text-indigo-600" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-gray-900">Student Details</h3>
+                            <p className="text-sm text-gray-500">Additional information for students</p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <div className="space-y-1.5">
+                            <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                              Email Address
+                            </label>
+                            <input
+                              type="email"
+                              id="email"
+                              name="email"
+                              value={formData.email}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                              placeholder="Enter email address"
+                            />
+                          </div>
+                          <div className="space-y-1.5">
+                            <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              id="phoneNumber"
+                              name="phoneNumber"
+                              value={formData.phoneNumber}
+                              onChange={handleChange}
+                              required
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200"
+                              placeholder="Enter phone number"
+                            />
+                          </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <label htmlFor="courseId" className="block text-sm font-medium text-gray-700">
+                              Course
+                            </label>
+                            <select
+                              id="courseId"
+                              name="courseId"
+                              value={formData.courseId}
+                              onChange={handleChange}
+                              required
+                              disabled={isLoadingCourses}
+                              className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
+                            >
+                              <option value="">
+                                {isLoadingCourses ? 'Loading courses...' : 'Select a course'}
+                              </option>
+                              {!isLoadingCourses && courses.map(course => (
+                                <option key={course.id} value={course.id}>
+                                  {course.code} - {course.name}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex justify-end">
+                      <button
+                        type="submit"
+                        disabled={isLoading}
+                        className={`px-6 py-2.5 bg-indigo-600 text-white rounded-lg font-medium shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-all duration-200 flex items-center space-x-2 ${
+                          isLoading ? 'opacity-50 cursor-not-allowed' : ''
+                        }`}
+                      >
+                        {isLoading ? (
+                          <>
+                            <div className="w-5 h-5 border-t-2 border-b-2 border-white rounded-full animate-spin" />
+                            <span>Creating...</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserPlus className="w-5 h-5" />
+                            <span>Create User</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
                   </form>
                 </div>
               </TabPanel>
