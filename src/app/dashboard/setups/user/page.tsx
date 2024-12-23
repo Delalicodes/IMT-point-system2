@@ -17,6 +17,12 @@ interface User {
   updatedAt: string;
 }
 
+interface Course {
+  id: string;
+  name: string;
+  code: string;
+}
+
 export default function UserSetupPage() {
   const [activeTab, setActiveTab] = useState(0);
   const [formData, setFormData] = useState({
@@ -41,6 +47,8 @@ export default function UserSetupPage() {
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [showRoleModal, setShowRoleModal] = useState(false);
   const [selectedRole, setSelectedRole] = useState('');
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [isLoadingCourses, setIsLoadingCourses] = useState(true);
   const router = useRouter();
   const { user } = useAuth();
 
@@ -123,6 +131,27 @@ export default function UserSetupPage() {
       }
     };
     fetchUsers();
+  }, []);
+
+  // Fetch courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setIsLoadingCourses(true);
+      try {
+        const response = await fetch('/api/courses');
+        if (!response.ok) {
+          throw new Error('Failed to fetch courses');
+        }
+        const data = await response.json();
+        setCourses(data);
+      } catch (error) {
+        console.error('Failed to fetch courses:', error);
+        toast.error('Failed to fetch courses');
+      } finally {
+        setIsLoadingCourses(false);
+      }
+    };
+    fetchCourses();
   }, []);
 
   // Delete selected users
@@ -436,10 +465,17 @@ export default function UserSetupPage() {
                                 value={formData.courseId}
                                 onChange={handleChange}
                                 required
-                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200"
+                                disabled={isLoadingCourses}
+                                className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200 disabled:bg-gray-100 disabled:cursor-not-allowed"
                               >
-                                <option value="">Select a course</option>
-                                {/* We'll add course options here later */}
+                                <option value="">
+                                  {isLoadingCourses ? 'Loading courses...' : 'Select a course'}
+                                </option>
+                                {!isLoadingCourses && courses.map(course => (
+                                  <option key={course.id} value={course.id}>
+                                    {course.code} - {course.name}
+                                  </option>
+                                ))}
                               </select>
                             </div>
                           </>
@@ -788,7 +824,9 @@ export default function UserSetupPage() {
                               required
                             >
                               <option value="">Select a course</option>
-                              {/* We'll add course options here later */}
+                              {courses.map(course => (
+                                <option key={course.id} value={course.id}>{course.name}</option>
+                              ))}
                             </select>
                           </div>
                           <div>
