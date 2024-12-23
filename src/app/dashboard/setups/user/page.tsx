@@ -630,9 +630,15 @@ export default function UserSetupPage() {
                                   </div>
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
-                                  <Badge color={user.role === 'ADMIN' ? 'blue' : 'gray'}>
-                                    {user.role === 'ADMIN' ? 'Admin' : 'Student'}
-                                  </Badge>
+                                  {user.role === 'ADMIN' ? (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700 ring-1 ring-inset ring-indigo-600/20">
+                                      Admin
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-50 text-gray-600 ring-1 ring-inset ring-gray-500/20">
+                                      Student
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-6 py-4 whitespace-nowrap">
                                   <Badge color="green">Active</Badge>
