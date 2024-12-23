@@ -13,47 +13,38 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const from = searchParams.get('from');
-    const userId = searchParams.get('userId');
-
-    let whereClause: any = {};
-
-    // Add date filter if 'from' parameter exists
-    if (from) {
-      whereClause.createdAt = {
-        gte: new Date(from)
-      };
-    }
-
-    // Add user filter if userId is provided or if user is not admin
-    if (userId || session.user.role !== 'ADMIN') {
-      whereClause.userId = userId || session.user.id;
-    }
-
-    const points = await prisma.point.findMany({
-      where: whereClause,
-      include: {
-        user: {
+    // Get all users with STUDENT role and their total points
+    const users = await prisma.user.findMany({
+      where: {
+        role: 'STUDENT'
+      },
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        points: {
           select: {
-            id: true,
-            firstName: true,
-            lastName: true,
+            points: true,
           },
         },
       },
-      orderBy: {
-        createdAt: 'desc',
-      },
     });
 
-    return NextResponse.json(points);
+    // Calculate total points for each user
+    const usersWithTotalPoints = users.map(user => ({
+      id: user.id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      totalPoints: user.points.reduce((sum, point) => sum + point.points, 0),
+    }));
+
+    // Sort by total points in descending order
+    const sortedUsers = usersWithTotalPoints.sort((a, b) => b.totalPoints - a.totalPoints);
+
+    return NextResponse.json(sortedUsers);
   } catch (error) {
     console.error('Error fetching points:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch points' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
 
