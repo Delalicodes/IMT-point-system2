@@ -13,6 +13,10 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const { searchParams } = new URL(request.url);
+    const startDate = searchParams.get('startDate');
+    const endDate = searchParams.get('endDate');
+
     // Get all users with STUDENT role and their total points
     const users = await prisma.user.findMany({
       where: {
@@ -23,6 +27,12 @@ export async function GET(request: Request) {
         firstName: true,
         lastName: true,
         points: {
+          where: startDate && endDate ? {
+            createdAt: {
+              gte: new Date(startDate),
+              lte: new Date(endDate)
+            }
+          } : undefined,
           select: {
             points: true,
           },

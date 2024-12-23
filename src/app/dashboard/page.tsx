@@ -31,23 +31,33 @@ export default function DashboardPage() {
 
   const fetchPoints = async () => {
     try {
-      const response = await fetch('/api/points');
+      const queryParams = new URLSearchParams();
+      if (selectedDate) {
+        const startDate = new Date(selectedDate);
+        startDate.setHours(0, 0, 0, 0);
+        const endDate = new Date(selectedDate);
+        endDate.setHours(23, 59, 59, 999);
+        
+        queryParams.append('startDate', startDate.toISOString());
+        queryParams.append('endDate', endDate.toISOString());
+      }
+
+      const response = await fetch(`/api/points?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch points');
       
       const data = await response.json();
-      const sortedStudents = data.sort((a: Student, b: Student) => b.totalPoints - a.totalPoints);
-      setStudents(sortedStudents);
+      setStudents(data);
 
       if (session?.user?.id) {
-        const userIndex = sortedStudents.findIndex((s: Student) => s.id === session.user.id);
+        const userIndex = data.findIndex((s: Student) => s.id === session.user.id);
         if (userIndex !== -1) {
-          const percentile = ((sortedStudents.length - userIndex) / sortedStudents.length) * 100;
+          const percentile = ((data.length - userIndex) / data.length) * 100;
           setCurrentUserStats({
             rank: userIndex + 1,
-            totalPoints: sortedStudents[userIndex].totalPoints,
+            totalPoints: data[userIndex].totalPoints,
             percentile: Math.round(percentile),
-            monthlyPoints: sortedStudents[userIndex].totalPoints,
-            yearlyPoints: sortedStudents[userIndex].totalPoints
+            monthlyPoints: data[userIndex].totalPoints,
+            yearlyPoints: data[userIndex].totalPoints
           });
         }
       }
@@ -63,7 +73,7 @@ export default function DashboardPage() {
     if (session?.user) {
       fetchPoints();
     }
-  }, [session]);
+  }, [session, selectedDate]);
 
   if (isLoading) {
     return (
@@ -75,55 +85,51 @@ export default function DashboardPage() {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow-sm">
-      {/* Header with filters */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center gap-8">
-          <h2 className="text-lg font-medium">My Credit Card</h2>
-          <h2 className="text-lg font-medium">Statistics</h2>
+      {/* Header with filters and top students */}
+      <div className="mb-6">
+        <div className="flex justify-between items-center mb-6">
+          <div className="flex items-center gap-8">
+            <h2 className="text-lg font-medium">My Credit Card</h2>
+            <h2 className="text-lg font-medium">Statistics</h2>
+          </div>
+          <div className="flex items-center gap-4">
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date: Date) => setSelectedDate(date)}
+              dateFormat="yyyy-MM-dd"
+              className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
+              placeholderText="Select date"
+            />
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date: Date) => setSelectedDate(date)}
+              dateFormat="yyyy-MM-dd"
+              className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
+              placeholderText="Select date"
+            />
+          </div>
         </div>
-        <div className="flex items-center gap-4">
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date: Date) => setSelectedDate(date)}
-            dateFormat="yyyy-MM-dd"
-            className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
-            placeholderText="Select date"
-          />
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date: Date) => setSelectedDate(date)}
-            dateFormat="yyyy-MM-dd"
-            className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
-            placeholderText="Select date"
-          />
-        </div>
-      </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Leaderboard Card */}
+        {/* Top Students Row */}
+        <div className="grid grid-cols-2 gap-6">
+          {/* Leaderboard */}
           <Card className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 overflow-hidden">
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-6">
+            <div className="p-4">
+              <div className="flex justify-between items-center mb-4">
                 <div>
-                  <h3 className="text-lg font-semibold text-white">Top Students</h3>
-                  <p className="text-white/70 text-sm">Based on total points</p>
+                  <h3 className="text-lg font-semibold text-white">Leaderboard</h3>
+                  <p className="text-white/70 text-sm">Overall Rankings</p>
                 </div>
-                <button className="text-white/80 hover:text-white">
-                  <MoreVertical className="w-5 h-5" />
-                </button>
               </div>
-              <div className="space-y-4">
+              <div className="space-y-3">
                 {students.slice(0, 5).map((student, index) => (
                   <div 
                     key={student.id} 
-                    className={`relative flex items-center p-3 rounded-xl ${
+                    className={`relative flex items-center p-3 rounded-lg ${
                       index === 0 ? 'bg-white/20' : 'hover:bg-white/10'
                     } transition-all duration-200`}
                   >
-                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-4 ${
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
                       index === 0 ? 'bg-yellow-400 text-yellow-900' :
                       index === 1 ? 'bg-gray-300 text-gray-700' :
                       index === 2 ? 'bg-amber-600 text-amber-100' :
@@ -132,7 +138,7 @@ export default function DashboardPage() {
                       {index + 1}
                     </div>
                     <div className="flex-1">
-                      <h4 className="text-white font-medium">{student.firstName} {student.lastName}</h4>
+                      <h4 className="text-white font-medium text-sm">{student.firstName} {student.lastName}</h4>
                       <div className="flex items-center gap-2">
                         <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
                           <div 
@@ -143,118 +149,99 @@ export default function DashboardPage() {
                         <span className="text-white/70 text-sm">{student.totalPoints.toLocaleString()} pts</span>
                       </div>
                     </div>
-                    {index === 0 && (
-                      <div className="absolute -top-1 -right-1 bg-yellow-400 text-yellow-900 px-2 py-0.5 text-xs font-semibold rounded-full">
-                        Leader
-                      </div>
-                    )}
                   </div>
                 ))}
               </div>
-              {session?.user?.id && currentUserStats && (
-                <div className="mt-6 pt-4 border-t border-white/10">
-                  <div className="flex items-center p-3 rounded-xl bg-white/10">
-                    <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-4 bg-white/10 text-white">
-                      {currentUserStats.rank}
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="text-white font-medium">Your Position</h4>
-                      <div className="flex items-center gap-2">
-                        <div className="flex-1 h-1.5 bg-white/20 rounded-full overflow-hidden">
-                          <div 
-                            className="h-full bg-white rounded-full"
-                            style={{ width: `${(currentUserStats.totalPoints / (students[0]?.totalPoints || 1)) * 100}%` }}
-                          />
-                        </div>
-                        <span className="text-white/70 text-sm">{currentUserStats.totalPoints.toLocaleString()} pts</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
           </Card>
 
-          {/* Monthly Stats */}
-          <div className="grid grid-cols-2 gap-6">
-            <Card>
-              <div className="p-4">
-                <Text className="mb-2">Earning in Month</Text>
-                <div className="relative w-32 h-32 mx-auto">
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="text-2xl font-semibold">75%</div>
-                  </div>
-                  <svg className="w-full h-full" viewBox="0 0 36 36">
-                    <path
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="#eee"
-                      strokeWidth="3"
-                    />
-                    <path
-                      d="M18 2.0845
-                        a 15.9155 15.9155 0 0 1 0 31.831
-                        a 15.9155 15.9155 0 0 1 0 -31.831"
-                      fill="none"
-                      stroke="url(#gradient)"
-                      strokeWidth="3"
-                      strokeDasharray="75, 100"
-                    />
-                    <defs>
-                      <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
-                        <stop offset="0%" stopColor="#fbbf24" />
-                        <stop offset="100%" stopColor="#f59e0b" />
-                      </linearGradient>
-                    </defs>
-                  </svg>
-                </div>
-                <div className="mt-4 space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Expected:</span>
-                    <span>$30,541,875,874</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-gray-500">Payable:</span>
-                    <span>$505,875,874</span>
-                  </div>
-                </div>
+          {/* Top 3 Badges */}
+          <div className="bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl p-4">
+            <div className="flex justify-between items-center mb-4">
+              <div>
+                <h3 className="text-lg font-semibold text-white">Top Performers</h3>
+                <p className="text-white/70 text-sm">
+                  {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
+                    month: 'long',
+                    day: 'numeric',
+                    year: 'numeric'
+                  }) : 'All time'}
+                </p>
               </div>
-            </Card>
-
-            <div className="space-y-6">
-              <Card>
-                <div className="p-4">
-                  <Text className="mb-2">Monthly Sale</Text>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold">20,541</span>
-                    <span className="text-amber-500">↓ 15%</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="h-1 bg-amber-100 rounded-full">
-                      <div className="h-1 w-[15%] bg-amber-500 rounded-full"></div>
+            </div>
+            <div className="space-y-3">
+              {students.slice(0, 3).map((student, index) => (
+                <div 
+                  key={student.id}
+                  className={`relative overflow-hidden rounded-lg ${
+                    index === 0 ? 'bg-yellow-400/20 border border-yellow-400/30' :
+                    index === 1 ? 'bg-gray-400/20 border border-gray-400/30' :
+                    'bg-amber-700/20 border border-amber-700/30'
+                  } p-3`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${
+                      index === 0 ? 'bg-yellow-400 text-yellow-900' :
+                      index === 1 ? 'bg-gray-300 text-gray-700' :
+                      'bg-amber-600 text-amber-100'
+                    } font-bold text-lg`}>
+                      #{index + 1}
                     </div>
+                    <div>
+                      <h4 className="text-white font-medium text-sm">{student.firstName} {student.lastName}</h4>
+                      <div className="flex items-center gap-1 text-white/70">
+                        <span className="text-base font-semibold">{student.totalPoints.toLocaleString()}</span>
+                        <span className="text-xs">pts</span>
+                      </div>
+                    </div>
+                    <div className={`absolute -right-6 -top-6 w-16 h-16 rounded-full ${
+                      index === 0 ? 'bg-yellow-400/10' :
+                      index === 1 ? 'bg-gray-400/10' :
+                      'bg-amber-700/10'
+                    }`} />
                   </div>
                 </div>
-              </Card>
-
-              <Card>
-                <div className="p-4">
-                  <Text className="mb-2">Yearly Sale</Text>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-semibold">20,541,125</span>
-                    <span className="text-green-500">↑ 75%</span>
-                  </div>
-                  <div className="mt-2">
-                    <div className="h-1 bg-green-100 rounded-full">
-                      <div className="h-1 w-[75%] bg-green-500 rounded-full"></div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
+              ))}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Main Grid */}
+      <div className="grid grid-cols-2 gap-6">
+        {/* Left Column */}
+        <div className="space-y-6">
+          {/* Monthly Sale Card */}
+          <Card>
+            <div className="p-4">
+              <Text className="mb-2">Monthly Sale</Text>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-semibold">20,541</span>
+                <span className="text-amber-500">↓ 15%</span>
+              </div>
+              <div className="mt-2">
+                <div className="h-1 bg-amber-100 rounded-full">
+                  <div className="h-1 w-[15%] bg-amber-500 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          </Card>
+
+          {/* Yearly Sale Card */}
+          <Card>
+            <div className="p-4">
+              <Text className="mb-2">Yearly Sale</Text>
+              <div className="flex items-baseline gap-2">
+                <span className="text-2xl font-semibold">20,541,125</span>
+                <span className="text-green-500">↑ 75%</span>
+              </div>
+              <div className="mt-2">
+                <div className="h-1 bg-green-100 rounded-full">
+                  <div className="h-1 w-[75%] bg-green-500 rounded-full"></div>
+                </div>
+              </div>
+            </div>
+          </Card>
         </div>
 
         {/* Right Column */}
