@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { Title, Text, Grid, Col, Metric, Flex, Badge, ProgressBar, Card } from '@tremor/react';
-import { ChevronLeft, ChevronRight, MoreVertical, Users, Trophy, Target, Star } from 'lucide-react';
+import { ChevronLeft, ChevronRight, MoreVertical, Users, Trophy, Target, Star, Calendar } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import DatePicker from 'react-datepicker';
+import { Dialog } from '@headlessui/react';
+import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import "react-datepicker/dist/react-datepicker.css";
 
 interface Student {
@@ -14,11 +16,27 @@ interface Student {
   totalPoints: number;
 }
 
+interface WeeklyPoints {
+  totalPoints: number;
+  weekStart: string;
+  weekEnd: string;
+  students: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    points: number;
+    trend: 'up' | 'down' | 'neutral';
+  }[];
+}
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+  const [isWeeklyDialogOpen, setIsWeeklyDialogOpen] = useState(false);
+  const [selectedWeek, setSelectedWeek] = useState<Date>(new Date());
+  const [weeklyPoints, setWeeklyPoints] = useState<WeeklyPoints | null>(null);
 
   const fetchOverallLeaderboard = async () => {
     try {
@@ -54,6 +72,75 @@ export default function DashboardPage() {
     }
   };
 
+  const fetchWeeklyPoints = async (date: Date) => {
+    let start: Date;
+    let end: Date;
+    
+    try {
+      start = startOfWeek(date, { weekStartsOn: 1 }); // Monday
+      end = endOfWeek(date, { weekStartsOn: 1 }); // Sunday
+
+      const queryParams = new URLSearchParams({
+        startDate: start.toISOString(),
+        endDate: end.toISOString()
+      });
+
+      console.log('Fetching weekly points for:', { start, end });
+      const response = await fetch(`/api/points/weekly?${queryParams}`);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('API Error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText
+        });
+        throw new Error(`Failed to fetch weekly points: ${errorText}`);
+      }
+      
+      const data = await response.json();
+      console.log('Weekly points data:', data);
+      
+      if (!data.students) {
+        console.error('Invalid data format:', data);
+        throw new Error('Invalid data format received from API');
+      }
+
+      setWeeklyPoints({
+        totalPoints: data.totalPoints || 0,
+        weekStart: format(start, 'MMM dd, yyyy'),
+        weekEnd: format(end, 'MMM dd, yyyy'),
+        students: Array.isArray(data.students) ? data.students.map(student => ({
+          ...student,
+          trend: 'neutral'
+        })) : []
+      });
+    } catch (error) {
+      console.error('Error fetching weekly points:', error);
+      // Only set weeklyPoints if start and end are defined
+      if (start && end) {
+        setWeeklyPoints({
+          totalPoints: 0,
+          weekStart: format(start, 'MMM dd, yyyy'),
+          weekEnd: format(end, 'MMM dd, yyyy'),
+          students: []
+        });
+      }
+    }
+  };
+
+  const handlePreviousWeek = () => {
+    const newDate = subWeeks(selectedWeek, 1);
+    setSelectedWeek(newDate);
+    fetchWeeklyPoints(newDate);
+  };
+
+  const handleNextWeek = () => {
+    const newDate = addWeeks(selectedWeek, 1);
+    setSelectedWeek(newDate);
+    fetchWeeklyPoints(newDate);
+  };
+
   useEffect(() => {
     if (session?.user) {
       fetchOverallLeaderboard();
@@ -67,10 +154,142 @@ export default function DashboardPage() {
     }
   }, [selectedDate]);
 
+  useEffect(() => {
+    if (isWeeklyDialogOpen) {
+      console.log('Dialog opened, fetching weekly points...');
+      fetchWeeklyPoints(selectedWeek);
+    }
+  }, [isWeeklyDialogOpen, selectedWeek]);
+
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
-      <Title>Dashboard</Title>
-      <Text>Welcome to your dashboard</Text>
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <Title>Dashboard</Title>
+          <Text>Welcome to your dashboard</Text>
+        </div>
+        <button
+          onClick={() => setIsWeeklyDialogOpen(true)}
+          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+        >
+          <Calendar className="w-4 h-4" />
+          <span>View Weekly Points</span>
+        </button>
+      </div>
+
+      {/* Weekly Points Dialog */}
+      <Dialog
+        open={isWeeklyDialogOpen}
+        onClose={() => setIsWeeklyDialogOpen(false)}
+        className="relative z-50"
+      >
+        <div className="fixed inset-0 bg-black/30" aria-hidden="true" />
+
+        <div className="fixed inset-0 flex items-center justify-center p-4">
+          <Dialog.Panel className="w-full max-w-2xl bg-white rounded-xl p-6 shadow-lg">
+            <div className="flex justify-between items-center mb-6">
+              <Dialog.Title className="text-xl font-semibold text-gray-900">
+                Weekly Points Summary
+              </Dialog.Title>
+              <button
+                onClick={() => setIsWeeklyDialogOpen(false)}
+                className="text-gray-400 hover:text-gray-500"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="flex items-center justify-between mb-6">
+              <button
+                onClick={handlePreviousWeek}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <div className="text-center">
+                <div className="font-medium text-gray-900">
+                  {weeklyPoints?.weekStart} - {weeklyPoints?.weekEnd}
+                </div>
+              </div>
+              <button
+                onClick={handleNextWeek}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="bg-gray-50 rounded-xl p-4 mb-6">
+              <div className="text-sm text-gray-500 mb-1">Total Points This Week</div>
+              <div className="text-3xl font-bold text-gray-900">
+                {weeklyPoints?.totalPoints?.toLocaleString() ?? 0}
+              </div>
+            </div>
+
+            <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2">
+              {weeklyPoints?.students.map((student) => (
+                <div
+                  key={student.id}
+                  className="bg-white border border-gray-100 rounded-xl p-4 flex items-center justify-between hover:border-gray-200 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-purple-500 to-indigo-500 flex items-center justify-center text-white font-medium">
+                      {student.firstName[0]}{student.lastName[0]}
+                    </div>
+                    <div>
+                      <div className="font-medium text-gray-900">
+                        {student.firstName} {student.lastName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Student
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className={`px-3 py-1 rounded-full flex items-center gap-1 text-sm ${
+                      student.trend === 'up' 
+                        ? 'bg-green-50 text-green-700' 
+                        : student.trend === 'down'
+                        ? 'bg-red-50 text-red-700'
+                        : 'bg-gray-50 text-gray-700'
+                    }`}>
+                      {student.trend === 'up' && (
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M5.293 7.707a1 1 0 010-1.414l4-4a1 1 0 011.414 0l4 4a1 1 0 01-1.414 1.414L11 5.414V17a1 1 0 11-2 0V5.414L6.707 7.707a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {student.trend === 'down' && (
+                        <svg className="w-4 h-4" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M14.707 12.293a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 111.414-1.414L9 14.586V3a1 1 0 012 0v11.586l2.293-2.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                      {student.points.toLocaleString()} pts
+                    </div>
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 flex items-center justify-center">
+                      <Trophy className={`w-4 h-4 ${
+                        student.points >= 100 ? 'text-yellow-500' :
+                        student.points >= 50 ? 'text-gray-400' :
+                        'text-amber-600'
+                      }`} />
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setIsWeeklyDialogOpen(false)}
+                className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </Dialog.Panel>
+        </div>
+      </Dialog>
 
       {/* Header with filters and top students */}
       <div className="mb-6">
