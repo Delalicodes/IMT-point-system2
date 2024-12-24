@@ -19,15 +19,6 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [currentUserStats, setCurrentUserStats] = useState<{
-    rank: number;
-    totalPoints: number;
-    percentile: number;
-    monthlyPoints: number;
-    yearlyPoints: number;
-  } | null>(null);
-  const [pointsHistory, setPointsHistory] = useState<Array<{ date: string; points: number }>>([]);
 
   const fetchOverallLeaderboard = async () => {
     try {
@@ -35,20 +26,6 @@ export default function DashboardPage() {
       if (!response.ok) throw new Error('Failed to fetch points');
       const data = await response.json();
       setStudents(data);
-
-      if (session?.user?.id) {
-        const userIndex = data.findIndex((s: Student) => s.id === session.user.id);
-        if (userIndex !== -1) {
-          const percentile = ((data.length - userIndex) / data.length) * 100;
-          setCurrentUserStats({
-            rank: userIndex + 1,
-            totalPoints: data[userIndex].totalPoints,
-            percentile: Math.round(percentile),
-            monthlyPoints: data[userIndex].totalPoints,
-            yearlyPoints: data[userIndex].totalPoints
-          });
-        }
-      }
     } catch (error) {
       console.error('Error:', error);
     }
@@ -68,23 +45,10 @@ export default function DashboardPage() {
         endDate: endDate.toISOString()
       });
 
-      console.log('Fetching filtered data for:', { startDate, endDate });
       const response = await fetch(`/api/points/filtered?${queryParams}`);
       if (!response.ok) throw new Error('Failed to fetch filtered points');
       const data = await response.json();
-      console.log('Filtered data received:', data);
       setFilteredStudents(data);
-    } catch (error) {
-      console.error('Error:', error);
-    }
-  };
-
-  const fetchPointsHistory = async () => {
-    try {
-      const response = await fetch('/api/points/history?days=7');
-      if (!response.ok) throw new Error('Failed to fetch points history');
-      const data = await response.json();
-      setPointsHistory(data);
     } catch (error) {
       console.error('Error:', error);
     }
@@ -92,33 +56,22 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (session?.user) {
-      // Fetch overall leaderboard once
       fetchOverallLeaderboard();
-      // Also fetch initial filtered data
       fetchFilteredTopPerformers();
-      // Fetch points history
-      fetchPointsHistory();
-      setIsLoading(false);
     }
   }, [session]);
 
-  // Make sure to update filtered data when date changes
   useEffect(() => {
     if (selectedDate) {
       fetchFilteredTopPerformers();
     }
   }, [selectedDate]);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-white p-6 rounded-lg shadow-sm">
+    <main className="p-4 md:p-10 mx-auto max-w-7xl">
+      <Title>Dashboard</Title>
+      <Text>Welcome to your dashboard</Text>
+
       {/* Header with filters and top students */}
       <div className="mb-6">
         <div className="flex justify-end mb-6">
@@ -286,152 +239,6 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-2 gap-6">
-        {/* Left Column */}
-        <div className="space-y-6">
-          {/* Monthly Sale Card */}
-          <div className="bg-white rounded-xl p-4">
-            <Text className="mb-2">Monthly Sale</Text>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold">20,541</span>
-              <span className="text-amber-500">↓ 15%</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-1 bg-amber-100 rounded-full">
-                <div className="h-1 w-[15%] bg-amber-500 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-
-          {/* Yearly Sale Card */}
-          <div className="bg-white rounded-xl p-4">
-            <Text className="mb-2">Yearly Sale</Text>
-            <div className="flex items-baseline gap-2">
-              <span className="text-2xl font-semibold">20,541,125</span>
-              <span className="text-green-500">↑ 75%</span>
-            </div>
-            <div className="mt-2">
-              <div className="h-1 bg-green-100 rounded-full">
-                <div className="h-1 w-[75%] bg-green-500 rounded-full"></div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right Column */}
-        <div className="space-y-6">
-          {/* Statistics Chart */}
-          <div className="bg-white rounded-xl p-4">
-            <div className="h-[200px] flex items-center justify-center text-gray-400">
-              Chart Component Here
-            </div>
-          </div>
-
-          {/* Calendar */}
-          <div className="bg-white rounded-xl p-4">
-            <div className="flex justify-between items-center mb-4">
-              <Text>Calendar</Text>
-              <div className="flex gap-2">
-                <button className="p-1 hover:bg-gray-100 rounded">
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button className="p-1 hover:bg-gray-100 rounded">
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <DatePicker
-              selected={selectedDate}
-              onChange={(date: Date) => setSelectedDate(date)}
-              inline
-              className="w-full"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Points Distribution and Achievements */}
-      <div className="mt-6 space-y-6">
-        {/* Points Distribution Chart */}
-        <div className="bg-white rounded-xl p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Points History</h3>
-              <p className="text-sm text-gray-500">Last 7 days distribution</p>
-            </div>
-          </div>
-          <div className="h-[200px] space-y-4">
-            {/* Last 7 days bars */}
-            {pointsHistory.map((day, index) => {
-              const date = new Date(day.date);
-              const maxPoints = Math.max(...pointsHistory.map(d => d.points));
-              const percentage = maxPoints > 0 ? (day.points / maxPoints) * 100 : 0;
-              
-              return (
-                <div key={day.date} className="flex items-center gap-3">
-                  <div className="w-20 text-sm text-gray-500">
-                    {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                  </div>
-                  <div className="flex-1 h-3 bg-gray-100 rounded-full overflow-hidden">
-                    <div 
-                      className="h-full bg-indigo-500 rounded-full transition-all duration-500"
-                      style={{ width: `${percentage}%` }}
-                    />
-                  </div>
-                  <div className="w-20 text-sm text-gray-500 text-right">
-                    {day.points.toLocaleString()} pts
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Achievement Progress */}
-        <div className="bg-white rounded-xl p-4">
-          <div className="flex justify-between items-center mb-4">
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Achievement Progress</h3>
-              <p className="text-sm text-gray-500">Your milestones</p>
-            </div>
-          </div>
-          <div className="grid grid-cols-3 gap-6">
-            {[
-              { name: 'Bronze', target: 1000, color: 'amber' },
-              { name: 'Silver', target: 5000, color: 'gray' },
-              { name: 'Gold', target: 10000, color: 'yellow' }
-            ].map((achievement) => {
-              const userPoints = currentUserStats?.totalPoints || 0;
-              const progress = Math.min((userPoints / achievement.target) * 100, 100);
-              
-              return (
-                <div key={achievement.name} className="text-center">
-                  <div className="relative w-24 h-24 mx-auto mb-3">
-                    {/* Background circle */}
-                    <div className={`absolute inset-0 rounded-full border-4 border-${achievement.color}-100`} />
-                    {/* Progress circle */}
-                    <div 
-                      className={`absolute inset-0 rounded-full border-4 border-${achievement.color}-500`}
-                      style={{
-                        clipPath: `polygon(50% 50%, -50% -50%, ${progress}% ${progress}%)`,
-                        transform: 'rotate(-90deg)',
-                      }}
-                    />
-                    {/* Center content */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <span className="text-lg font-semibold">{Math.round(progress)}%</span>
-                    </div>
-                  </div>
-                  <h4 className="font-medium text-gray-900">{achievement.name}</h4>
-                  <p className="text-sm text-gray-500">{achievement.target.toLocaleString()} pts</p>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-    </div>
+    </main>
   );
 }
