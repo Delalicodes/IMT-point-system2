@@ -40,8 +40,10 @@ import {
   Calculator,
   ChartPieIcon,
   CalendarDays,
+  Crown,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import ClockingDialog from '@/components/ClockingDialog';
 
 interface PointData {
   date: string;
@@ -59,7 +61,7 @@ interface Achievement {
   earned: boolean;
 }
 
-const cardColors: Color[] = ['indigo', 'rose', 'amber', 'emerald', 'blue', 'violet'];
+const cardColors: Color[] = ['indigo', 'rose', 'amber', 'emerald', 'blue', 'violet']
 
 // Define modern color schemes for charts
 const chartColors = [
@@ -233,6 +235,29 @@ export default function StudentArena() {
           </p>
         </motion.div>
         <div className="absolute top-0 left-0 w-full h-full bg-white/10 backdrop-blur-sm"></div>
+      </div>
+
+      {/* Header Section */}
+      <div className="mb-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold bg-gradient-to-r from-gray-900 to-gray-600 bg-clip-text text-transparent">
+              Student Performance Analytics
+            </h1>
+            <p className="mt-1 text-gray-500">
+              Track your progress and achievements in real-time
+            </p>
+          </div>
+          <div className="mt-4 md:mt-0 flex items-center space-x-3">
+            <ClockingDialog />
+            <div className="flex items-center px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 rounded-xl shadow-lg">
+              <Crown className="w-5 h-5 text-white mr-2" />
+              <Text className="text-white font-semibold">
+                Rank #{leaderboardPosition}
+              </Text>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Grid */}

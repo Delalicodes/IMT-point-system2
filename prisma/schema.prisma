@@ -26,6 +26,7 @@ model User {
   courseId    String?
   course      Course?   @relation(fields: [courseId], references: [id])
   points      Point[]
+  clockingRecords ClockingRecord[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -50,4 +51,16 @@ model Point {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+model ClockingRecord {
+  id          String    @id @default(cuid())
+  userId      String
+  type        String    // IN, BREAK, OUT
+  timestamp   DateTime  @default(now())
+  totalHours  Float?    // Only set when type is OUT
+  user        User      @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@map("clocking_records")
 }
