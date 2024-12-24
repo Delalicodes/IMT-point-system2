@@ -9,11 +9,11 @@ import {
   Flex,
   Badge,
   Metric,
-  DateRangePicker,
-  DateRangePickerValue,
 } from '@tremor/react';
-import { Clock, Coffee, LogOut, History, Timer, Calendar, Filter } from 'lucide-react';
-import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { Clock, Coffee, LogOut, History, Timer, Calendar } from 'lucide-react';
+import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
+import { DayPicker, SelectRangeEventHandler } from 'react-day-picker';
+import 'react-day-picker/dist/style.css';
 
 interface ClockingRecord {
   id: string;
@@ -21,6 +21,11 @@ interface ClockingRecord {
   type: 'IN' | 'BREAK' | 'OUT';
   timestamp: string;
   totalHours?: number;
+}
+
+interface DateRange {
+  from: Date | undefined;
+  to: Date | undefined;
 }
 
 export default function ClockingDialog() {
@@ -31,7 +36,8 @@ export default function ClockingDialog() {
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState<string>('');
   const [lastClockIn, setLastClockIn] = useState<Date | null>(null);
-  const [dateRange, setDateRange] = useState<DateRangePickerValue>({ from: undefined, to: undefined });
+  const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
+  const [showDatePicker, setShowDatePicker] = useState(false);
 
   useEffect(() => {
     fetchClockingHistory();
@@ -136,6 +142,13 @@ export default function ClockingDialog() {
     }
   };
 
+  const handleDateRangeSelect: SelectRangeEventHandler = (range) => {
+    if (range?.from) {
+      setDateRange({ from: range.from, to: range.to });
+    }
+    setShowDatePicker(false);
+  };
+
   const filteredHistory = clockingHistory.filter(record => {
     if (!dateRange.from) return true;
     
@@ -145,6 +158,18 @@ export default function ClockingDialog() {
     
     return isWithinInterval(recordDate, { start: from, end: to });
   });
+
+  const clearDateRange = () => {
+    setDateRange({ from: undefined, to: undefined });
+  };
+
+  const setLastWeek = () => {
+    const today = new Date();
+    setDateRange({
+      from: subDays(today, 7),
+      to: today
+    });
+  };
 
   const nextAction = getNextAction();
 
@@ -306,17 +331,82 @@ export default function ClockingDialog() {
               </Button>
             </div>
 
-            {/* Date Range Picker */}
-            <div className="mb-6">
-              <DateRangePicker
-                className="max-w-md"
-                value={dateRange}
-                onValueChange={setDateRange}
-                placeholder="Filter by date range"
-                enableSelect={false}
-              />
+            {/* Date Filter Section */}
+            <div className="mb-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={() => setShowDatePicker(!showDatePicker)}
+                    className="flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl"
+                  >
+                    <Calendar className="w-4 h-4" />
+                    {dateRange.from ? (
+                      <span>
+                        {format(dateRange.from, 'MMM d, yyyy')}
+                        {dateRange.to && ` - ${format(dateRange.to, 'MMM d, yyyy')}`}
+                      </span>
+                    ) : (
+                      'Select dates'
+                    )}
+                  </Button>
+                  {dateRange.from && (
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      onClick={clearDateRange}
+                      className="text-gray-500 hover:text-gray-700"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={setLastWeek}
+                  className="bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-xl"
+                >
+                  Last 7 days
+                </Button>
+              </div>
+
+              {/* Date Picker Popover */}
+              {showDatePicker && (
+                <div className="absolute z-50 mt-2 p-4 bg-white rounded-xl shadow-lg border border-gray-200">
+                  <DayPicker
+                    mode="range"
+                    selected={dateRange}
+                    onSelect={handleDateRangeSelect}
+                    numberOfMonths={2}
+                    className="bg-white"
+                    styles={{
+                      months: { display: 'flex', gap: '1rem' },
+                      caption: { color: '#374151' },
+                      head_cell: { color: '#6B7280' },
+                      cell: { margin: '2px' },
+                      day: { margin: '2px', borderRadius: '0.5rem' },
+                      nav_button: { color: '#374151' },
+                      nav_button_previous: { marginRight: '1rem' },
+                      nav_button_next: { marginLeft: '1rem' },
+                    }}
+                    modifiersStyles={{
+                      selected: {
+                        backgroundColor: '#3B82F6',
+                        color: 'white',
+                      },
+                      today: {
+                        color: '#3B82F6',
+                        fontWeight: 'bold',
+                      },
+                    }}
+                  />
+                </div>
+              )}
             </div>
 
+            {/* History List */}
             <Card className="rounded-2xl">
               <div className="overflow-y-auto max-h-[400px]">
                 <List>
