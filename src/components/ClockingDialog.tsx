@@ -374,32 +374,39 @@ export default function ClockingDialog() {
 
               {/* Date Picker Popover */}
               {showDatePicker && (
-                <div className="absolute z-50 mt-2 p-4 bg-white rounded-xl shadow-lg border border-gray-200">
+                <div className="absolute z-50 mt-2 p-3 bg-white rounded-xl shadow-lg border border-gray-200">
                   <DayPicker
                     mode="range"
                     selected={dateRange}
                     onSelect={handleDateRangeSelect}
-                    numberOfMonths={2}
-                    className="bg-white"
-                    styles={{
-                      months: { display: 'flex', gap: '1rem' },
-                      caption: { color: '#374151' },
-                      head_cell: { color: '#6B7280' },
-                      cell: { margin: '2px' },
-                      day: { margin: '2px', borderRadius: '0.5rem' },
-                      nav_button: { color: '#374151' },
-                      nav_button_previous: { marginRight: '1rem' },
-                      nav_button_next: { marginLeft: '1rem' },
+                    numberOfMonths={1}
+                    className="bg-white !font-sans"
+                    showOutsideDays
+                    classNames={{
+                      months: "flex flex-col sm:flex-row space-y-4 sm:space-x-4 sm:space-y-0",
+                      month: "space-y-4",
+                      caption: "flex justify-center pt-1 relative items-center px-2",
+                      caption_label: "text-sm font-medium text-gray-900",
+                      nav: "space-x-1 flex items-center",
+                      nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center",
+                      nav_button_previous: "absolute left-1",
+                      nav_button_next: "absolute right-1",
+                      table: "w-full border-collapse space-y-1",
+                      head_row: "flex",
+                      head_cell: "text-gray-500 rounded-md w-8 font-normal text-[0.8rem]",
+                      row: "flex w-full mt-2",
+                      cell: "text-center text-sm relative p-0 rounded-md focus-within:relative focus-within:z-20",
+                      day: "h-8 w-8 p-0 font-normal aria-selected:opacity-100 hover:bg-gray-100 rounded-md",
+                      day_selected: "bg-blue-500 text-white hover:bg-blue-600 hover:text-white focus:bg-blue-500 focus:text-white",
+                      day_today: "bg-gray-100",
+                      day_outside: "text-gray-400 opacity-50",
+                      day_disabled: "text-gray-400 opacity-50",
+                      day_range_middle: "aria-selected:bg-blue-100 aria-selected:text-blue-900",
+                      day_hidden: "invisible",
                     }}
-                    modifiersStyles={{
-                      selected: {
-                        backgroundColor: '#3B82F6',
-                        color: 'white',
-                      },
-                      today: {
-                        color: '#3B82F6',
-                        fontWeight: 'bold',
-                      },
+                    components={{
+                      IconLeft: () => <span className="text-gray-600">←</span>,
+                      IconRight: () => <span className="text-gray-600">→</span>,
                     }}
                   />
                 </div>
