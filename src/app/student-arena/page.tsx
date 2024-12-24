@@ -36,6 +36,8 @@ import {
   CheckCircle2,
   ArrowUp,
   Flame,
+  Banknote,
+  Calculator,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -191,6 +193,11 @@ export default function StudentArena() {
     if (progress >= 50) return "Halfway there! You're doing great! 🌟";
     if (progress >= 25) return "Great progress! Keep going! 🎯";
     return "Every point counts! You've got this! 💫";
+  };
+
+  // Calculate GHC value from points (5 GHC per 20 points)
+  const calculateGHC = (points: number) => {
+    return (points / 20) * 5;
   };
 
   if (loading) {
@@ -384,7 +391,12 @@ export default function StudentArena() {
               <Title>Level Progress</Title>
               <Text>Keep earning points to level up!</Text>
             </div>
-            <Badge color="amber" size="xl">Level {calculateLevel(totalPoints).level}</Badge>
+            <div className="flex items-center px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 rounded-xl shadow-lg">
+              <Star className="w-5 h-5 text-white mr-2" />
+              <Text className="text-white font-semibold">
+                Level {calculateLevel(totalPoints).level}
+              </Text>
+            </div>
           </div>
 
           <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-4 mb-6">
@@ -469,50 +481,80 @@ export default function StudentArena() {
         <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-2xl">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <Title>Achievements</Title>
-              <Subtitle>Your learning milestones</Subtitle>
+              <Title>Points Value</Title>
+              <Text>Convert your points to GHC</Text>
             </div>
-            <Badge color="purple" icon={Trophy}>
-              3/10 Unlocked
-            </Badge>
+            <div className="flex items-center px-4 py-2 bg-gradient-to-r from-green-500 to-emerald-600 rounded-xl shadow-lg">
+              <Banknote className="w-5 h-5 text-white mr-2" />
+              <Text className="text-white font-semibold">
+                {calculateGHC(totalPoints).toFixed(2)} GHC
+              </Text>
+            </div>
           </div>
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
-            <AnimatePresence>
-              {achievements.map((achievement, index) => (
-                <motion.div
-                  key={achievement.id}
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: index * 0.1 }}
-                  whileHover={{ scale: 1.02 }}
-                  className={`p-4 rounded-2xl border-2 transition-all duration-200 ${
-                    achievement.earned
-                      ? 'border-green-200 bg-gradient-to-br from-green-50 to-emerald-50'
-                      : 'border-gray-200 bg-gradient-to-br from-gray-50 to-slate-50'
-                  }`}
-                >
-                  <Flex>
-                    <div className={`p-3 rounded-2xl ${achievement.color}`}>
-                      <achievement.icon className="w-5 h-5 text-white" />
+
+          <Grid numItems={1} numItemsSm={2} numItemsLg={2} className="gap-4 mb-6">
+            <Card decoration="top" decorationColor="green">
+              <Flex alignItems="center">
+                <div className="p-2 bg-green-100 rounded-full">
+                  <Trophy className="w-6 h-6 text-green-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Total Points</Text>
+                  <Metric>{totalPoints.toLocaleString()} pts</Metric>
+                </div>
+              </Flex>
+            </Card>
+
+            <Card decoration="top" decorationColor="emerald">
+              <Flex alignItems="center">
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <Banknote className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Cash Value</Text>
+                  <Metric>{calculateGHC(totalPoints).toFixed(2)} GHC</Metric>
+                </div>
+              </Flex>
+            </Card>
+          </Grid>
+
+          <div className="space-y-4">
+            <div className="p-4 bg-green-50 rounded-2xl border border-green-100">
+              <Flex>
+                <div className="flex items-center space-x-2">
+                  <Calculator className="w-5 h-5 text-green-500" />
+                  <Text>Conversion Rate: 20 points = 5 GHC</Text>
+                </div>
+              </Flex>
+            </div>
+
+            <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100">
+              <Title className="mb-2">Recent Earnings</Title>
+              <List>
+                <ListItem>
+                  <Flex justifyContent="start" className="space-x-2">
+                    <div className="p-1.5 bg-green-100 rounded-full">
+                      <ArrowUp className="w-4 h-4 text-green-600" />
                     </div>
-                    <div className="ml-3 space-y-1">
-                      <Text className="font-medium">{achievement.title}</Text>
-                      <Text className="text-sm text-gray-500">
-                        {achievement.description}
-                      </Text>
-                      <Badge
-                        className="mt-2"
-                        color={achievement.earned ? 'green' : 'gray'}
-                        icon={achievement.earned ? CheckCircle2 : undefined}
-                        size="sm"
-                      >
-                        {achievement.points} pts
-                      </Badge>
+                    <div>
+                      <Text>Daily Points</Text>
+                      <Text className="text-gray-500">{dailyPoints} points = {calculateGHC(dailyPoints).toFixed(2)} GHC</Text>
                     </div>
                   </Flex>
-                </motion.div>
-              ))}
-            </AnimatePresence>
+                </ListItem>
+                <ListItem>
+                  <Flex justifyContent="start" className="space-x-2">
+                    <div className="p-1.5 bg-blue-100 rounded-full">
+                      <ArrowUp className="w-4 h-4 text-blue-600" />
+                    </div>
+                    <div>
+                      <Text>Weekly Points</Text>
+                      <Text className="text-gray-500">{weeklyPoints} points = {calculateGHC(weeklyPoints).toFixed(2)} GHC</Text>
+                    </div>
+                  </Flex>
+                </ListItem>
+              </List>
+            </div>
           </div>
         </Card>
       </motion.div>
