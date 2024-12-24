@@ -8,6 +8,7 @@ import DatePicker from 'react-datepicker';
 import { Dialog } from '@headlessui/react';
 import { format, startOfWeek, endOfWeek, addWeeks, subWeeks } from 'date-fns';
 import "react-datepicker/dist/react-datepicker.css";
+import ActiveUsers from '@/components/ActiveUsers';
 
 interface Student {
   id: string;
@@ -318,8 +319,7 @@ export default function DashboardPage() {
                   key={student.id} 
                   className={`relative flex items-center p-3 rounded-lg ${
                     index === 0 ? 'bg-white/20' : 'hover:bg-white/10'
-                  } transition-all duration-200`}
-                >
+                  } transition-all duration-200`}>
                   <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
                     index === 0 ? 'bg-yellow-400 text-yellow-900' :
                     index === 1 ? 'bg-gray-300 text-gray-700' :
@@ -367,8 +367,7 @@ export default function DashboardPage() {
                     index === 0 ? 'bg-yellow-400/20 border border-yellow-400/30' :
                     index === 1 ? 'bg-gray-400/20 border border-gray-400/30' :
                     'bg-amber-700/20 border border-amber-700/30'
-                  } p-3`}
-                >
+                  } p-3`}>
                   <div className="flex items-center gap-3">
                     <div className={`flex items-center justify-center w-10 h-10 rounded-lg ${
                       index === 0 ? 'bg-yellow-400 text-yellow-900' :
@@ -457,6 +456,8 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {session?.user?.role === 'ADMIN' && <ActiveUsers />}
     </main>
   );
 }
