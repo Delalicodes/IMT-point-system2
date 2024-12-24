@@ -9,9 +9,11 @@ import {
   Flex,
   Badge,
   Metric,
+  DateRangePicker,
+  DateRangePickerValue,
 } from '@tremor/react';
-import { Clock, Coffee, LogOut, History, Timer } from 'lucide-react';
-import { format, formatDistanceToNow } from 'date-fns';
+import { Clock, Coffee, LogOut, History, Timer, Calendar, Filter } from 'lucide-react';
+import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 
 interface ClockingRecord {
   id: string;
@@ -29,6 +31,7 @@ export default function ClockingDialog() {
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const [timeElapsed, setTimeElapsed] = useState<string>('');
   const [lastClockIn, setLastClockIn] = useState<Date | null>(null);
+  const [dateRange, setDateRange] = useState<DateRangePickerValue>({ from: undefined, to: undefined });
 
   useEffect(() => {
     fetchClockingHistory();
@@ -133,6 +136,16 @@ export default function ClockingDialog() {
     }
   };
 
+  const filteredHistory = clockingHistory.filter(record => {
+    if (!dateRange.from) return true;
+    
+    const recordDate = new Date(record.timestamp);
+    const from = startOfDay(dateRange.from);
+    const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
+    
+    return isWithinInterval(recordDate, { start: from, end: to });
+  });
+
   const nextAction = getNextAction();
 
   return (
@@ -177,27 +190,24 @@ export default function ClockingDialog() {
 
             <div className="space-y-6">
               {/* Current Status */}
-              <Card className="bg-gray-50 rounded-2xl">
-                <Flex>
-                  <div>
-                    <Text>Current Status</Text>
-                    <Badge
-                      className={`mt-1 ${getStatusColor(currentStatus)} rounded-full px-3`}
-                    >
-                      {currentStatus}
-                    </Badge>
-                  </div>
-                  {timeElapsed && currentStatus !== 'OUT' && (
-                    <div className="text-right">
-                      <Text>Time Elapsed</Text>
-                      <Metric className="text-lg">{timeElapsed}</Metric>
-                    </div>
-                  )}
-                </Flex>
-              </Card>
+              <div className="text-center">
+                <Badge
+                  size="xl"
+                  className={`${getStatusColor(currentStatus)} px-4 py-2 text-sm font-medium rounded-full`}
+                >
+                  {currentStatus === 'IN' && 'Currently Working'}
+                  {currentStatus === 'OUT' && 'Not Working'}
+                  {currentStatus === 'BREAK' && 'On Break'}
+                </Badge>
+                {currentStatus !== 'OUT' && (
+                  <Text className="mt-2 text-gray-600">
+                    Time elapsed: {timeElapsed}
+                  </Text>
+                )}
+              </div>
 
               {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 {currentStatus === 'OUT' && (
                   <Button
                     size="lg"
@@ -296,36 +306,46 @@ export default function ClockingDialog() {
               </Button>
             </div>
 
+            {/* Date Range Picker */}
+            <div className="mb-6">
+              <DateRangePicker
+                className="max-w-md"
+                value={dateRange}
+                onValueChange={setDateRange}
+                placeholder="Filter by date range"
+                enableSelect={false}
+              />
+            </div>
+
             <Card className="rounded-2xl">
-              <List>
-                {clockingHistory.map((record) => (
-                  <ListItem key={record.id} className="rounded-xl">
-                    <Flex>
-                      <div className="flex-1">
-                        <Text className="font-medium">
-                          {format(new Date(record.timestamp), 'MMM dd, yyyy')}
-                        </Text>
-                        <div className="flex items-center gap-2 mt-1">
-                          <Badge className={`${getStatusColor(record.type)} rounded-full px-3`}>
+              <div className="overflow-y-auto max-h-[400px]">
+                <List>
+                  {filteredHistory.map((record) => (
+                    <ListItem key={record.id} className="rounded-xl hover:bg-gray-50">
+                      <Flex>
+                        <div className="flex-1">
+                          <Text className="font-medium">
+                            {format(new Date(record.timestamp), 'MMM dd, yyyy')}
+                          </Text>
+                          <Text className="text-gray-500">
+                            {format(new Date(record.timestamp), 'h:mm a')}
+                          </Text>
+                        </div>
+                        <div className="flex items-center gap-4">
+                          {record.totalHours && (
+                            <Text className="text-gray-600">
+                              {record.totalHours.toFixed(1)}h
+                            </Text>
+                          )}
+                          <Badge className={getStatusColor(record.type)}>
                             {record.type}
                           </Badge>
-                          <Text className="text-sm text-gray-500">
-                            {format(new Date(record.timestamp), 'HH:mm')}
-                          </Text>
                         </div>
-                      </div>
-                      {record.totalHours && (
-                        <div className="text-right">
-                          <Text className="font-medium">Duration</Text>
-                          <Text className="text-gray-500">
-                            {record.totalHours.toFixed(1)}h
-                          </Text>
-                        </div>
-                      )}
-                    </Flex>
-                  </ListItem>
-                ))}
-              </List>
+                      </Flex>
+                    </ListItem>
+                  ))}
+                </List>
+              </div>
             </Card>
           </Card>
         </div>
