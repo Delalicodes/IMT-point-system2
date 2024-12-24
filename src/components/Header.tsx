@@ -11,12 +11,13 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { signOut } from 'next-auth/react';
 
 export default function Header() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const router = useRouter();
-  const { user, setUser } = useAuth();
+  const { user } = useAuth();
 
   // Initialize theme from localStorage on component mount
   useEffect(() => {
@@ -40,9 +41,7 @@ export default function Header() {
 
   const handleLogout = async () => {
     try {
-      // Clear user data
-      setUser(null);
-      localStorage.removeItem('user');
+      await signOut({ redirect: false });
       router.push('/login');
     } catch (error) {
       console.error('Logout error:', error);
@@ -86,7 +85,7 @@ export default function Header() {
               <User className="w-5 h-5 text-white" />
             </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
-              {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+              {user?.name || 'Loading...'}
             </span>
             <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
@@ -95,27 +94,18 @@ export default function Header() {
             <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
               <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user ? `${user.firstName} ${user.lastName}` : 'Loading...'}
+                  {user?.name || 'Loading...'}
                 </p>
                 <p className="text-sm text-gray-500 dark:text-gray-400">
                   {user?.email}
                 </p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                  {user?.role || 'student'}
+                </p>
               </div>
-              <a
-                href="#"
-                className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                View Profile
-              </a>
-              <a
-                href="#"
-                className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-              >
-                Settings
-              </a>
               <button
                 onClick={handleLogout}
-                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center space-x-2"
+                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 <LogOut className="w-4 h-4" />
                 <span>Logout</span>

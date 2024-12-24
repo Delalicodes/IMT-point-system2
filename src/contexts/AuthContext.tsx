@@ -1,34 +1,48 @@
 'use client';
 
-import { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
-type User = {
-  firstName: string;
-  lastName: string;
+interface User {
+  id: string;
+  name: string;
   email: string;
   role: string;
-} | null;
+}
 
-type AuthContextType = {
-  user: User;
-  setUser: (user: User) => void;
-};
+interface AuthContextType {
+  user: User | null;
+  loading: boolean;
+}
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User>(null);
+  const { data: session, status } = useSession();
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check localStorage for user data on mount
-    const storedUser = localStorage.getItem('user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    if (status === 'loading') {
+      setLoading(true);
+      return;
     }
-  }, []);
+
+    if (session?.user) {
+      setUser({
+        id: session.user.id as string,
+        name: session.user.name as string,
+        email: session.user.email as string,
+        role: session.user.role as string || 'student', // Default to student if role is not set
+      });
+    } else {
+      setUser(null);
+    }
+    setLoading(false);
+  }, [session, status]);
 
   return (
-    <AuthContext.Provider value={{ user, setUser }}>
+    <AuthContext.Provider value={{ user, loading }}>
       {children}
     </AuthContext.Provider>
   );

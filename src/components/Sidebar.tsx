@@ -10,12 +10,14 @@ import {
   Wrench,
   UserCog,
   Medal,
-  BookOpen
+  BookOpen,
+  GraduationCap
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useState } from 'react';
+import { useSession } from 'next-auth/react';
 
-const menuItems = [
+const adminMenuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { 
     icon: Settings, 
@@ -33,10 +35,20 @@ const menuItems = [
   { icon: Award, label: 'Points', href: '/dashboard/points' },
 ];
 
+const studentMenuItems = [
+  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: GraduationCap, label: 'Student Arena', href: '/student-arena' },
+  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
+];
+
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [openSetup, setOpenSetup] = useState(false);
+  const { data: session } = useSession();
+
+  const isStudent = session?.user?.role === 'STUDENT';
+  const menuItems = isStudent ? studentMenuItems : adminMenuItems;
 
   const handleNavigation = (href: string) => {
     if (href !== '#') {
