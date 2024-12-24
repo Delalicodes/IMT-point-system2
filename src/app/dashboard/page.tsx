@@ -16,11 +16,10 @@ interface Student {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
   const [students, setStudents] = useState<Student[]>([]);
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState(new Date());
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth());
   const [currentUserStats, setCurrentUserStats] = useState<{
     rank: number;
     totalPoints: number;
@@ -29,22 +28,10 @@ export default function DashboardPage() {
     yearlyPoints: number;
   } | null>(null);
 
-  const fetchPoints = async () => {
+  const fetchOverallLeaderboard = async () => {
     try {
-      const queryParams = new URLSearchParams();
-      if (selectedDate) {
-        const startDate = new Date(selectedDate);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(selectedDate);
-        endDate.setHours(23, 59, 59, 999);
-        
-        queryParams.append('startDate', startDate.toISOString());
-        queryParams.append('endDate', endDate.toISOString());
-      }
-
-      const response = await fetch(`/api/points?${queryParams}`);
+      const response = await fetch('/api/points');
       if (!response.ok) throw new Error('Failed to fetch points');
-      
       const data = await response.json();
       setStudents(data);
 
@@ -61,19 +48,52 @@ export default function DashboardPage() {
           });
         }
       }
-
-      setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching points:', error);
-      setIsLoading(false);
+      console.error('Error:', error);
+    }
+  };
+
+  const fetchFilteredTopPerformers = async () => {
+    try {
+      if (!selectedDate) return;
+
+      const startDate = new Date(selectedDate);
+      startDate.setHours(0, 0, 0, 0);
+      const endDate = new Date(selectedDate);
+      endDate.setHours(23, 59, 59, 999);
+
+      const queryParams = new URLSearchParams({
+        startDate: startDate.toISOString(),
+        endDate: endDate.toISOString()
+      });
+
+      console.log('Fetching filtered data for:', { startDate, endDate });
+      const response = await fetch(`/api/points/filtered?${queryParams}`);
+      if (!response.ok) throw new Error('Failed to fetch filtered points');
+      const data = await response.json();
+      console.log('Filtered data received:', data);
+      setFilteredStudents(data);
+    } catch (error) {
+      console.error('Error:', error);
     }
   };
 
   useEffect(() => {
     if (session?.user) {
-      fetchPoints();
+      // Fetch overall leaderboard once
+      fetchOverallLeaderboard();
+      // Also fetch initial filtered data
+      fetchFilteredTopPerformers();
+      setIsLoading(false);
     }
-  }, [session, selectedDate]);
+  }, [session]);
+
+  // Make sure to update filtered data when date changes
+  useEffect(() => {
+    if (selectedDate) {
+      fetchFilteredTopPerformers();
+    }
+  }, [selectedDate]);
 
   if (isLoading) {
     return (
@@ -99,12 +119,12 @@ export default function DashboardPage() {
 
         {/* Top Students Row */}
         <div className="grid grid-cols-2 gap-6">
-          {/* Leaderboard */}
+          {/* Overall Leaderboard */}
           <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-xl p-4">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Leaderboard</h3>
-                <p className="text-white/70 text-sm">Overall Rankings</p>
+                <h3 className="text-lg font-semibold text-white">Overall Leaderboard</h3>
+                <p className="text-white/70 text-sm">Total points earned</p>
               </div>
             </div>
             <div className="space-y-3">
@@ -140,11 +160,11 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Top 3 Badges */}
+          {/* Daily Top Performers */}
           <div className="bg-gradient-to-br from-violet-500 to-purple-500 rounded-xl p-4">
             <div className="flex justify-between items-center mb-4">
               <div>
-                <h3 className="text-lg font-semibold text-white">Top Performers</h3>
+                <h3 className="text-lg font-semibold text-white">Daily Top Performers</h3>
                 <p className="text-white/70 text-sm">
                   {selectedDate ? selectedDate.toLocaleDateString('en-US', { 
                     month: 'long',
@@ -155,7 +175,7 @@ export default function DashboardPage() {
               </div>
             </div>
             <div className="space-y-3">
-              {students.slice(0, 3).map((student, index) => (
+              {filteredStudents.slice(0, 3).map((student, index) => (
                 <div 
                   key={student.id}
                   className={`relative overflow-hidden rounded-lg ${
