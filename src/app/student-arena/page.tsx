@@ -57,6 +57,22 @@ interface Achievement {
 
 const cardColors: Color[] = ['indigo', 'rose', 'amber', 'emerald', 'blue', 'violet'];
 
+// Define modern color schemes for charts
+const chartColors = [
+  '#6366f1', // indigo
+  '#f43f5e', // rose
+  '#f59e0b', // amber
+  '#10b981', // emerald
+  '#3b82f6', // blue
+  '#8b5cf6', // violet
+  '#06b6d4', // cyan
+  '#d946ef'  // fuchsia
+];
+
+const barChartColors = ['#6366f1']; // vibrant indigo
+
+const modernValueFormatter = (value: number) => `${value.toLocaleString()} pts`;
+
 export default function StudentArena() {
   const { data: session } = useSession();
   const [totalPoints, setTotalPoints] = useState(0);
@@ -279,23 +295,22 @@ export default function StudentArena() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <Title>Points History</Title>
-                <Subtitle>Your learning progress over time</Subtitle>
+                <Text>Your point earning journey</Text>
               </div>
-              <Badge color="indigo" icon={Flame}>
-                On Fire! 🔥
-              </Badge>
+              <Badge color="indigo">Last 30 Days</Badge>
             </div>
             <BarChart
-              className="mt-6 h-72"
+              className="mt-4 h-72"
               data={pointHistory}
               index="date"
               categories={["points"]}
-              colors={["indigo"]}
-              valueFormatter={(number: number) => 
-                Intl.NumberFormat("us").format(number).toString()
-              }
-              yAxisWidth={48}
+              colors={barChartColors}
+              valueFormatter={modernValueFormatter}
+              showLegend={false}
+              showGridLines={false}
               showAnimation={true}
+              startEndOnly={true}
+              yAxisWidth={60}
             />
           </Card>
         </motion.div>
@@ -309,23 +324,35 @@ export default function StudentArena() {
             <div className="flex items-center justify-between mb-6">
               <div>
                 <Title>Course Distribution</Title>
-                <Subtitle>Points earned per course</Subtitle>
+                <Text>Points earned per course</Text>
               </div>
-              <Badge color="emerald" icon={BookOpen}>
-                5 Active Courses
-              </Badge>
+              <Badge color="rose">Performance</Badge>
             </div>
             <DonutChart
-              className="mt-6 h-72"
+              className="mt-4 h-52"
               data={courseChartData}
               category="points"
               index="name"
-              valueFormatter={(number: number) =>
-                `${Intl.NumberFormat("us").format(number).toString()} pts`
-              }
-              colors={cardColors}
+              valueFormatter={modernValueFormatter}
+              colors={chartColors}
               showAnimation={true}
+              showTooltip={true}
+              showLabel={false}
             />
+            <List className="mt-4">
+              {courseChartData.map((item, index) => (
+                <ListItem key={item.name} className="space-x-2">
+                  <span 
+                    className="w-3 h-3 rounded-full inline-block"
+                    style={{ backgroundColor: chartColors[index % chartColors.length] }}
+                  />
+                  <div className="flex-1">
+                    <Text>{item.name}</Text>
+                  </div>
+                  <Text>{modernValueFormatter(item.points)}</Text>
+                </ListItem>
+              ))}
+            </List>
           </Card>
         </motion.div>
       </div>
