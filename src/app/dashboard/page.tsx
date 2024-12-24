@@ -164,17 +164,23 @@ export default function DashboardPage() {
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
       <div className="flex justify-between items-center mb-6">
-        <div>
-          <Title>Dashboard</Title>
-          <Text>Welcome to your dashboard</Text>
+        <Title>Dashboard</Title>
+        <div className="flex items-center gap-4">
+          <DatePicker
+            selected={selectedDate}
+            onChange={(date: Date) => setSelectedDate(date)}
+            dateFormat="yyyy-MM-dd"
+            className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
+            placeholderText="Select date"
+          />
+          <button
+            onClick={() => setIsWeeklyDialogOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Calendar className="w-4 h-4" />
+            <span>View Weekly Points</span>
+          </button>
         </div>
-        <button
-          onClick={() => setIsWeeklyDialogOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Calendar className="w-4 h-4" />
-          <span>View Weekly Points</span>
-        </button>
       </div>
 
       {/* Weekly Points Dialog */}
@@ -294,13 +300,6 @@ export default function DashboardPage() {
       {/* Header with filters and top students */}
       <div className="mb-6">
         <div className="flex justify-end mb-6">
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date: Date) => setSelectedDate(date)}
-            dateFormat="yyyy-MM-dd"
-            className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
-            placeholderText="Select date"
-          />
         </div>
 
         {/* Top Students Row */}
