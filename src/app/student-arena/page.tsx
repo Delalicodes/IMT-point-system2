@@ -38,6 +38,8 @@ import {
   Flame,
   Banknote,
   Calculator,
+  ChartPieIcon,
+  CalendarDays,
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
@@ -318,7 +320,12 @@ export default function StudentArena() {
                 <Title>Points History</Title>
                 <Text>Your point earning journey</Text>
               </div>
-              <Badge color="indigo">Last 30 Days</Badge>
+              <div className="flex items-center px-4 py-2 bg-gradient-to-r from-indigo-500 to-blue-600 rounded-xl shadow-lg">
+                <CalendarDays className="w-5 h-5 text-white mr-2" />
+                <Text className="text-white font-semibold">
+                  Last 30 Days
+                </Text>
+              </div>
             </div>
             <BarChart
               className="mt-4 h-72"
@@ -347,7 +354,12 @@ export default function StudentArena() {
                 <Title>Course Distribution</Title>
                 <Text>Points earned per course</Text>
               </div>
-              <Badge color="rose">Performance</Badge>
+              <div className="flex items-center px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 rounded-xl shadow-lg">
+                <ChartPieIcon className="w-5 h-5 text-white mr-2" />
+                <Text className="text-white font-semibold">
+                  Performance
+                </Text>
+              </div>
             </div>
             <DonutChart
               className="mt-4 h-52"
