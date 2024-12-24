@@ -104,9 +104,12 @@ export default function ClockingDialog() {
           setLastClockIn(null);
         }
         
-        // Close dialog and fetch latest history
-        setShowClockingDialog(false);
+        // Fetch latest history without closing the dialog
         await fetchClockingHistory();
+      } else {
+        // Show error message if the request failed
+        const errorData = await response.json();
+        console.error('Clocking error:', errorData);
       }
     } catch (error) {
       console.error('Error recording clocking:', error);
