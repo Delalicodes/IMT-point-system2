@@ -144,10 +144,6 @@ export default function StudentArena() {
       }));
       setPointHistory(formattedHistory);
       
-      // Calculate level based on total points
-      const calculatedLevel = Math.floor((data.total || 0) / 1000) + 1;
-      setLevel(calculatedLevel);
-      
       setLoading(false);
       if ((data.total || 0) > 0 && !showAnimation) {
         setShowAnimation(true);
@@ -178,6 +174,24 @@ export default function StudentArena() {
     name,
     points: value,
   }));
+
+  // Calculate level and progress
+  const pointsPerLevel = 1000;
+  const calculateLevel = (points: number) => {
+    const level = Math.floor(points / pointsPerLevel) + 1;
+    const progress = (points % pointsPerLevel) / pointsPerLevel * 100;
+    const pointsToNextLevel = pointsPerLevel - (points % pointsPerLevel);
+    return { level, progress, pointsToNextLevel };
+  };
+
+  // Get motivational message based on progress
+  const getMotivationalMessage = (progress: number) => {
+    if (progress >= 90) return "Almost there! You're so close! 🚀";
+    if (progress >= 75) return "Keep pushing! The next level awaits! 💪";
+    if (progress >= 50) return "Halfway there! You're doing great! 🌟";
+    if (progress >= 25) return "Great progress! Keep going! 🎯";
+    return "Every point counts! You've got this! 💫";
+  };
 
   if (loading) {
     return (
@@ -368,19 +382,68 @@ export default function StudentArena() {
           <div className="flex items-center justify-between mb-6">
             <div>
               <Title>Level Progress</Title>
-              <Subtitle>Keep going, you're doing great!</Subtitle>
+              <Text>Keep earning points to level up!</Text>
             </div>
-            <Badge color="amber" icon={Star}>
-              Level {level}
-            </Badge>
+            <Badge color="amber" size="xl">Level {calculateLevel(totalPoints).level}</Badge>
           </div>
-          <div className="mt-4">
-            <Flex className="mb-2">
-              <Text>Progress to Level {level + 1}</Text>
-              <Text className="font-medium">{totalPoints % 1000} / 1000 points</Text>
+
+          <Grid numItems={1} numItemsSm={2} numItemsLg={4} className="gap-4 mb-6">
+            <Card decoration="top" decorationColor="amber">
+              <Flex alignItems="center">
+                <div className="p-2 bg-amber-100 rounded-full">
+                  <Trophy className="w-6 h-6 text-amber-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Total Points</Text>
+                  <Metric>{totalPoints.toLocaleString()}</Metric>
+                </div>
+              </Flex>
+            </Card>
+            
+            <Card decoration="top" decorationColor="emerald">
+              <Flex alignItems="center">
+                <div className="p-2 bg-emerald-100 rounded-full">
+                  <Target className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Points to Next Level</Text>
+                  <Metric>{calculateLevel(totalPoints).pointsToNextLevel.toLocaleString()}</Metric>
+                </div>
+              </Flex>
+            </Card>
+
+            <Card decoration="top" decorationColor="violet">
+              <Flex alignItems="center">
+                <div className="p-2 bg-violet-100 rounded-full">
+                  <Award className="w-6 h-6 text-violet-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Current Level</Text>
+                  <Metric>{calculateLevel(totalPoints).level}</Metric>
+                </div>
+              </Flex>
+            </Card>
+
+            <Card decoration="top" decorationColor="blue">
+              <Flex alignItems="center">
+                <div className="p-2 bg-blue-100 rounded-full">
+                  <Star className="w-6 h-6 text-blue-600" />
+                </div>
+                <div className="ml-2">
+                  <Text>Progress</Text>
+                  <Metric>{calculateLevel(totalPoints).progress.toFixed(1)}%</Metric>
+                </div>
+              </Flex>
+            </Card>
+          </Grid>
+
+          <div className="space-y-3">
+            <Flex>
+              <Text>Progress to Level {calculateLevel(totalPoints).level + 1}</Text>
+              <Text>{calculateLevel(totalPoints).progress.toFixed(1)}%</Text>
             </Flex>
             <ProgressBar
-              value={(totalPoints % 1000) / 10}
+              value={calculateLevel(totalPoints).progress}
               color="amber"
               className="mt-3"
               showAnimation={true}
@@ -389,11 +452,8 @@ export default function StudentArena() {
               <Flex>
                 <div className="flex items-center space-x-2">
                   <Flame className="w-5 h-5 text-amber-500" />
-                  <Text className="text-amber-700">
-                    {1000 - (totalPoints % 1000)} points until next level
-                  </Text>
+                  <Text>{getMotivationalMessage(calculateLevel(totalPoints).progress)}</Text>
                 </div>
-                <Badge color="amber">Keep Going!</Badge>
               </Flex>
             </div>
           </div>
