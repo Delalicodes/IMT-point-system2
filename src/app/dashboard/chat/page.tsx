@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Send, Clock } from 'lucide-react';
+import { Send, Clock, AlertTriangle } from 'lucide-react';
 
 interface Message {
   id: string;
   content: string;
   userId: string;
+  isReport?: boolean;
   user: {
     firstName: string;
     lastName: string;
@@ -20,6 +21,8 @@ export default function ChatPage() {
   const { data: session, status } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [reportContent, setReportContent] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -76,8 +79,10 @@ export default function ChatPage() {
         body: JSON.stringify({ content: newMessage }),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to send message');
+        throw new Error(data.error || 'Failed to send message');
       }
 
       setNewMessage('');
@@ -86,6 +91,40 @@ export default function ChatPage() {
     } catch (error) {
       console.error('Error sending message:', error);
       setError(error instanceof Error ? error.message : 'Failed to send message');
+      // Keep the message in the input if sending failed
+      return;
+    }
+  };
+
+  const sendReport = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reportContent.trim() || !session?.user) return;
+
+    try {
+      const response = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          content: reportContent,
+          isReport: true
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to send report');
+      }
+
+      setReportContent('');
+      setIsReportModalOpen(false);
+      await fetchMessages();
+      setError(null);
+    } catch (error) {
+      console.error('Error sending report:', error);
+      setError(error instanceof Error ? error.message : 'Failed to send report');
+      // Keep the modal open if sending failed
+      return;
     }
   };
 
@@ -128,9 +167,20 @@ export default function ChatPage() {
               <h1 className="text-xl font-semibold text-gray-800">IMT Chat Room</h1>
               <p className="text-sm text-gray-500 mt-0.5">Connect with students and admins</p>
             </div>
-            <div className="flex items-center gap-2 text-sm text-gray-500">
-              <Clock className="w-4 h-4" />
-              <span>Messages update every 3s</span>
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock className="w-4 h-4" />
+                <span>Messages update every 3s</span>
+              </div>
+              {session?.user?.role === 'STUDENT' && (
+                <button
+                  onClick={() => setIsReportModalOpen(true)}
+                  className="bg-blue-500 text-white rounded-full px-4 py-1.5 text-sm hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+                >
+                  <Clock className="w-4 h-4" />
+                  Report Progress
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -188,17 +238,24 @@ export default function ChatPage() {
                         >
                           {message.user.role.toLowerCase()}
                         </span>
+                        {message.isReport && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
+                            progress report
+                          </span>
+                        )}
                       </div>
                     </div>
                     <div
                       className={`rounded-xl px-2.5 py-1.5 ${
-                        isCurrentUser
+                        message.isReport
                           ? 'bg-blue-500 text-white rounded-tr-none'
-                          : 'bg-white shadow-sm border border-gray-100 rounded-tl-none'
+                          : isCurrentUser
+                            ? 'bg-blue-500 text-white rounded-tr-none'
+                            : 'bg-white shadow-sm border border-gray-100 rounded-tl-none'
                       }`}
                     >
                       <p className="text-xs leading-relaxed">{message.content}</p>
-                      <span className={`text-[10px] mt-0.5 block ${isCurrentUser ? 'text-blue-100' : 'text-gray-400'}`}>
+                      <span className={`text-[10px] mt-0.5 block ${message.isReport || isCurrentUser ? 'text-white/70' : 'text-gray-400'}`}>
                         {new Date(message.createdAt).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit',
@@ -235,6 +292,50 @@ export default function ChatPage() {
           </form>
         </div>
       </div>
+
+      {/* Report Modal */}
+      {isReportModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Daily Progress Report</h2>
+              <button
+                onClick={() => setIsReportModalOpen(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <form onSubmit={sendReport}>
+              <textarea
+                value={reportContent}
+                onChange={(e) => setReportContent(e.target.value)}
+                placeholder="Share your progress for today. What did you accomplish? What are you working on?"
+                className="w-full h-32 rounded-lg border border-gray-200 p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none mb-4"
+              />
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setIsReportModalOpen(false)}
+                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={!reportContent.trim()}
+                  className="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
+                >
+                  <Clock className="w-4 h-4" />
+                  Submit Report
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

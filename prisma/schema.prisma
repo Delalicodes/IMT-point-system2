@@ -73,6 +73,7 @@ model ChatMessage {
   user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  isReport  Boolean  @default(false)
 
   @@index([userId])
 }
