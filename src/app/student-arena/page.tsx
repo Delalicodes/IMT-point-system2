@@ -63,21 +63,17 @@ interface Achievement {
 
 const cardColors: Color[] = ['indigo', 'rose', 'amber', 'emerald', 'blue', 'violet']
 
-// Define modern color schemes for charts
+// Define modern color schemes for charts with lighter, more pastel colors
 const chartColors = [
-  '#6366f1', // indigo
-  '#f43f5e', // rose
-  '#f59e0b', // amber
-  '#10b981', // emerald
-  '#3b82f6', // blue
-  '#8b5cf6', // violet
-  '#06b6d4', // cyan
-  '#d946ef'  // fuchsia
+  '#7DD3FC', // lighter blue
+  '#FDA4AF', // lighter pink
+  '#FCD34D', // soft yellow
+  '#86EFAC', // mint green
+  '#C4B5FD', // lavender
+  '#FED7AA'  // peach
 ];
 
-const barChartColors = ['#6366f1']; // vibrant indigo
-
-const modernValueFormatter = (value: number) => `${value.toLocaleString()} pts`;
+const barChartColors = ['#7DD3FC']; // lighter blue
 
 export default function StudentArena() {
   const { data: session } = useSession();
@@ -120,6 +116,11 @@ export default function StudentArena() {
       earned: false,
     },
   ];
+
+  const modernValueFormatter = (value: number) => {
+    const percentage = ((value / totalPoints) * 100).toFixed(0);
+    return `${percentage}%`;
+  };
 
   useEffect(() => {
     if (session?.user) {
@@ -374,16 +375,15 @@ export default function StudentArena() {
           transition={{ delay: 0.4 }}
         >
           <Card className="shadow-lg hover:shadow-xl transition-shadow rounded-2xl">
-            <div className="flex items-center justify-between mb-6">
-              <div>
-                <Title>Course Distribution</Title>
-                <Text>Points earned per course</Text>
-              </div>
-              <div className="flex items-center px-4 py-2 bg-gradient-to-r from-rose-500 to-pink-600 rounded-xl shadow-lg">
-                <ChartPieIcon className="w-5 h-5 text-white mr-2" />
-                <Text className="text-white font-semibold">
-                  Performance
-                </Text>
+            <div className="flex flex-col gap-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <Title className="text-gray-600">Points Distribution</Title>
+                  <Text className="text-gray-400">Points earned across courses</Text>
+                </div>
+                <Badge className="bg-blue-100 text-blue-700 rounded-lg">
+                  Total: {totalPoints.toLocaleString()} pts
+                </Badge>
               </div>
             </div>
             <DonutChart
@@ -395,22 +395,31 @@ export default function StudentArena() {
               colors={chartColors}
               showAnimation={true}
               showTooltip={true}
-              showLabel={false}
+              variant="donut"
+              label={`${((courseChartData[0]?.points || 0) / totalPoints * 100).toFixed(0)}%`}
+              labelProps={{
+                className: "text-3xl font-bold text-gray-500",
+              }}
+              valueClassName="text-gray-500"
+              animationDuration={1000}
+              thickness={36}
             />
-            <List className="mt-4">
+            <div className="mt-6 space-y-2">
               {courseChartData.map((item, index) => (
-                <ListItem key={item.name} className="space-x-2">
-                  <span 
-                    className="w-3 h-3 rounded-full inline-block"
-                    style={{ backgroundColor: chartColors[index % chartColors.length] }}
-                  />
-                  <div className="flex-1">
-                    <Text>{item.name}</Text>
+                <div key={item.name} className="flex items-center justify-between px-2 py-1">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className="h-3 w-3 rounded-full"
+                      style={{ backgroundColor: chartColors[index % chartColors.length] }}
+                    />
+                    <span className="text-gray-500 text-sm">{item.name}</span>
                   </div>
-                  <Text>{modernValueFormatter(item.points)}</Text>
-                </ListItem>
+                  <span className="text-gray-400 text-sm">
+                    {((item.points / totalPoints) * 100).toFixed(0)}%
+                  </span>
+                </div>
               ))}
-            </List>
+            </div>
           </Card>
         </motion.div>
       </div>
@@ -574,7 +583,7 @@ export default function StudentArena() {
                       <ArrowUp className="w-4 h-4 text-green-600" />
                     </div>
                     <div>
-                      <Text>Daily Points</Text>
+                      <Text className="text-gray-600">Daily Points</Text>
                       <Text className="text-gray-500">{dailyPoints} points = {calculateGHC(dailyPoints).toFixed(2)} GHC</Text>
                     </div>
                   </Flex>
@@ -585,7 +594,7 @@ export default function StudentArena() {
                       <ArrowUp className="w-4 h-4 text-blue-600" />
                     </div>
                     <div>
-                      <Text>Weekly Points</Text>
+                      <Text className="text-gray-600">Weekly Points</Text>
                       <Text className="text-gray-500">{weeklyPoints} points = {calculateGHC(weeklyPoints).toFixed(2)} GHC</Text>
                     </div>
                   </Flex>
