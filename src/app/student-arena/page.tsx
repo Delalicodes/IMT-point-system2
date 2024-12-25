@@ -125,6 +125,26 @@ export default function StudentArena() {
   useEffect(() => {
     if (session?.user) {
       fetchPointData();
+
+      // Set up SSE connection for real-time updates
+      const eventSource = new EventSource(`/api/points/updates?userId=${session.user.id}`);
+      
+      eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if (data.type === 'POINTS_ADDED') {
+          // Refresh data when points are added
+          fetchPointData();
+        }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE Error:', error);
+        eventSource.close();
+      };
+
+      return () => {
+        eventSource.close();
+      };
     }
   }, [session]);
 
