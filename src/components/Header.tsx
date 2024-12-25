@@ -7,11 +7,13 @@ import {
   Moon, 
   Sun, 
   User,
-  ChevronDown 
+  ChevronDown,
+  Settings 
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from 'next-auth/react';
+import Link from 'next/link';
 
 export default function Header() {
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -48,6 +50,25 @@ export default function Header() {
     }
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const dropdown = document.getElementById('profile-dropdown');
+      const button = document.getElementById('profile-button');
+      if (
+        dropdown &&
+        button &&
+        !dropdown.contains(event.target as Node) &&
+        !button.contains(event.target as Node)
+      ) {
+        setIsProfileOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   return (
     <header className="sticky top-0 z-50 h-16 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-end">
       <div className="flex items-center space-x-4">
@@ -78,11 +99,20 @@ export default function Header() {
         {/* Profile Dropdown */}
         <div className="relative">
           <button
+            id="profile-button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
             className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
-            <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-              <User className="w-5 h-5 text-white" />
+            <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden">
+              {user?.imageUrl ? (
+                <img
+                  src={user.imageUrl}
+                  alt={user.name || ''}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <User className="w-5 h-5 text-white" />
+              )}
             </div>
             <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
               {user?.name || 'Loading...'}
@@ -91,7 +121,7 @@ export default function Header() {
           </button>
 
           {isProfileOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
+            <div id="profile-dropdown" className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
               <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">
                   {user?.name || 'Loading...'}
@@ -103,6 +133,14 @@ export default function Header() {
                   {user?.role || 'student'}
                 </p>
               </div>
+              <Link
+                href="/dashboard/profile"
+                onClick={() => setIsProfileOpen(false)}
+                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+              >
+                <Settings className="w-4 h-4" />
+                <span>Profile Settings</span>
+              </Link>
               <button
                 onClick={handleLogout}
                 className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"

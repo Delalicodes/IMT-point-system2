@@ -27,6 +27,16 @@ export const authOptions: NextAuthOptions = {
           where: {
             username: credentials.username,
           },
+          select: {
+            id: true,
+            username: true,
+            password: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+            imageUrl: true,
+          },
         });
 
         if (!user) {
@@ -49,12 +59,14 @@ export const authOptions: NextAuthOptions = {
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
+          imageUrl: user.imageUrl,
+          name: `${user.firstName} ${user.lastName}`,
         };
       },
     }),
   ],
   callbacks: {
-    session: ({ session, token }) => {
+    async session({ session, token }) {
       return {
         ...session,
         user: {
@@ -64,10 +76,12 @@ export const authOptions: NextAuthOptions = {
           role: token.role,
           firstName: token.firstName,
           lastName: token.lastName,
+          imageUrl: token.imageUrl,
+          name: token.name,
         },
       };
     },
-    jwt: ({ token, user }) => {
+    async jwt({ token, user }) {
       if (user) {
         const u = user as unknown as any;
         return {
@@ -77,6 +91,8 @@ export const authOptions: NextAuthOptions = {
           role: u.role,
           firstName: u.firstName,
           lastName: u.lastName,
+          imageUrl: u.imageUrl,
+          name: u.name,
         };
       }
       return token;
@@ -85,4 +101,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
+  debug: true, // Enable debug mode
 };

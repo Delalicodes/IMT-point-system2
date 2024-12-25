@@ -6,8 +6,9 @@ import { useSession } from 'next-auth/react';
 interface User {
   id: string;
   name: string;
-  email: string;
+  email: string | null;
   role: string;
+  imageUrl: string | null;
 }
 
 interface AuthContextType {
@@ -34,6 +35,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         name: session.user.name as string,
         email: session.user.email as string,
         role: session.user.role as string || 'student', // Default to student if role is not set
+        imageUrl: session.user.imageUrl as string | null,
       });
     } else {
       setUser(null);

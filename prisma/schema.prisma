@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -14,35 +8,36 @@ datasource db {
 }
 
 model User {
-  id          String    @id @default(cuid())
-  firstName   String
-  lastName    String
-  username    String    @unique
-  password    String
-  email       String?
-  phoneNumber String?
-  role        String    @default("STUDENT")
-  status      String    @default("ACTIVE")
-  courseId    String?
-  course      Course?   @relation(fields: [courseId], references: [id])
-  points      Point[]
-  messages    ChatMessage[]
+  id              String           @id @default(cuid())
+  firstName       String
+  lastName        String
+  username        String           @unique
+  password        String
+  email           String?
+  phoneNumber     String?
+  role            String           @default("STUDENT")
+  status          String           @default("ACTIVE")
+  courseId        String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  imageUrl        String?          @default("/images/default-avatar.png")
+  messages        ChatMessage[]
+  messageViews    MessageView[]
+  points          Point[]
+  course          Course?          @relation(fields: [courseId], references: [id])
   clockingRecords ClockingRecord[]
-  messageViews MessageView[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 
   @@index([role])
 }
 
 model Course {
-  id          String    @id @default(uuid())
+  id          String   @id @default(uuid())
   name        String
   description String?
-  subjects    String    @default("[]")  // JSON string of subject names with default empty array
+  subjects    String   @default("[]")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   students    User[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
 }
 
 model Point {
@@ -50,47 +45,47 @@ model Point {
   points    Int
   note      String?
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id])
 }
 
 model ClockingRecord {
-  id          String    @id @default(cuid())
-  userId      String
-  type        String    // IN, BREAK, OUT
-  timestamp   DateTime  @default(now())
-  totalHours  Float?    // Only set when type is OUT
-  user        User      @relation(fields: [userId], references: [id])
+  id         String   @id @default(cuid())
+  userId     String
+  type       String
+  timestamp  DateTime @default(now())
+  totalHours Float?
+  user       User     @relation(fields: [userId], references: [id])
 
   @@index([userId])
   @@map("clocking_records")
 }
 
 model ChatMessage {
-  id          String        @id @default(cuid())
-  content     String
-  userId      String
-  user        User         @relation(fields: [userId], references: [id])
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-  isReport    Boolean      @default(false)
-  replyToId   String?
-  replyTo     ChatMessage? @relation("Replies", fields: [replyToId], references: [id])
-  replies     ChatMessage[] @relation("Replies")
-  views       MessageView[]
+  id        String        @id @default(cuid())
+  content   String
+  userId    String
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  isReport  Boolean       @default(false)
+  replyToId String?
+  replyTo   ChatMessage?  @relation("Replies", fields: [replyToId], references: [id])
+  replies   ChatMessage[] @relation("Replies")
+  user      User          @relation(fields: [userId], references: [id])
+  views     MessageView[]
 
   @@index([userId])
   @@index([replyToId])
 }
 
 model MessageView {
-  id        String   @id @default(cuid())
+  id        String      @id @default(cuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id])
   messageId String
+  viewedAt  DateTime    @default(now())
   message   ChatMessage @relation(fields: [messageId], references: [id])
-  viewedAt  DateTime @default(now())
+  user      User        @relation(fields: [userId], references: [id])
 
   @@unique([userId, messageId])
   @@index([userId])
