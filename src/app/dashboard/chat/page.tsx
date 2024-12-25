@@ -37,6 +37,7 @@ export default function ChatPage() {
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const [messageViews, setMessageViews] = useState<Record<string, any[]>>({});
   const [infoModalMessage, setInfoModalMessage] = useState<Message | null>(null);
+  const [showPointsNotification, setShowPointsNotification] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -230,11 +231,15 @@ export default function ChatPage() {
       setIsReportModalOpen(false);
       await fetchMessages();
       setError(null);
+      
+      // Show points notification
+      if (session.user.role === 'STUDENT') {
+        setShowPointsNotification(true);
+        setTimeout(() => setShowPointsNotification(false), 3000);
+      }
     } catch (error) {
       console.error('Error sending report:', error);
       setError(error instanceof Error ? error.message : 'Failed to send report');
-      // Keep the modal open if sending failed
-      return;
     }
   };
 
@@ -513,6 +518,16 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Points Notification */}
+      {showPointsNotification && (
+        <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-slide-up">
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v13m0-13V6a4 4 0 00-4-4H5.52a2.5 2.5 0 01-2.5-2.5v0a2.5 2.5 0 012.5-2.5H12"></path>
+          </svg>
+          <span className="font-medium">+1 point awarded for your report!</span>
+        </div>
+      )}
+
       {/* Info Modal */}
       {infoModalMessage && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
@@ -580,6 +595,22 @@ export default function ChatPage() {
           </div>
         </div>
       )}
+
+      <style jsx>{`
+        @keyframes slide-up {
+          0% {
+            transform: translateY(100%);
+            opacity: 0;
+          }
+          100% {
+            transform: translateY(0);
+            opacity: 1;
+          }
+        }
+        .animate-slide-up {
+          animation: slide-up 0.3s ease-out;
+        }
+      `}</style>
     </div>
   );
 }

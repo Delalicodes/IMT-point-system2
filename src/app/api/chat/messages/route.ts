@@ -109,6 +109,29 @@ export async function POST(request: Request) {
       );
     }
 
+    if (isReport && session.user.role === 'STUDENT') {
+      // Award points for submitting a report
+      await prisma.point.create({
+        data: {
+          userId: session.user.id,
+          points: 1,
+          note: 'Daily Progress Report Submission',
+        },
+      });
+
+      // Get updated total points
+      const totalPoints = await prisma.point.aggregate({
+        where: {
+          userId: session.user.id,
+        },
+        _sum: {
+          points: true,
+        },
+      });
+
+      console.log('Points awarded for report. New total:', totalPoints._sum.points);
+    }
+
     const message = await prisma.chatMessage.create({
       data: messageData,
       include: {
