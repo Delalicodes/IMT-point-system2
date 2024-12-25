@@ -23,6 +23,18 @@ export async function GET() {
             role: true,
           },
         },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -50,16 +62,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // Get all users for debugging
-    const allUsers = await prisma.user.findMany({
-      select: { id: true, username: true },
-    });
-    console.log('All users in database:', JSON.stringify(allUsers, null, 2));
-
     const body = await request.json();
     console.log('Request body:', body);
 
-    const { content, isReport = false } = body;
+    const { content, isReport = false, replyToId = null } = body;
 
     if (!content?.trim()) {
       console.log('Invalid request - Empty content');
@@ -69,10 +75,24 @@ export async function POST(request: Request) {
       );
     }
 
+    if (replyToId) {
+      const replyToMessage = await prisma.chatMessage.findUnique({
+        where: { id: replyToId },
+      });
+
+      if (!replyToMessage) {
+        return NextResponse.json(
+          { error: 'Reply message not found' },
+          { status: 404 }
+        );
+      }
+    }
+
     const messageData = {
       content: content.trim(),
       isReport,
       userId: session.user.id,
+      replyToId,
     };
     console.log('Creating message with data:', messageData);
 
@@ -100,6 +120,18 @@ export async function POST(request: Request) {
             role: true,
           },
         },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+              },
+            },
+          },
+        },
       },
     });
 
@@ -120,6 +152,82 @@ export async function POST(request: Request) {
     }
     return NextResponse.json(
       { error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PATCH(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Please sign in' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { messageId, content } = body;
+
+    if (!content?.trim()) {
+      return NextResponse.json(
+        { error: 'Message content is required' },
+        { status: 400 }
+      );
+    }
+
+    const existingMessage = await prisma.chatMessage.findUnique({
+      where: { id: messageId },
+    });
+
+    if (!existingMessage) {
+      return NextResponse.json(
+        { error: 'Message not found' },
+        { status: 404 }
+      );
+    }
+
+    if (existingMessage.userId !== session.user.id) {
+      return NextResponse.json(
+        { error: 'Unauthorized - Can only edit your own messages' },
+        { status: 403 }
+      );
+    }
+
+    const updatedMessage = await prisma.chatMessage.update({
+      where: { id: messageId },
+      data: { content: content.trim() },
+      include: {
+        user: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            role: true,
+          },
+        },
+        replyTo: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                role: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return NextResponse.json(updatedMessage);
+  } catch (error) {
+    console.error('Error in PATCH /api/chat/messages:', error);
+    return NextResponse.json(
+      { error: 'Failed to update message' },
       { status: 500 }
     );
   }

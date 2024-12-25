@@ -2,13 +2,15 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Send, Clock, AlertTriangle } from 'lucide-react';
+import { Send, Clock, Reply, Edit, Info } from 'lucide-react';
 
 interface Message {
   id: string;
   content: string;
   userId: string;
   isReport?: boolean;
+  replyToId?: string | null;
+  replyTo?: Message | null;
   user: {
     firstName: string;
     lastName: string;
@@ -17,15 +19,70 @@ interface Message {
   createdAt: string;
 }
 
+interface ContextMenu {
+  x: number;
+  y: number;
+  messageId: string;
+  isVisible: boolean;
+}
+
 export default function ChatPage() {
   const { data: session, status } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [reportContent, setReportContent] = useState('');
+  const [contextMenu, setContextMenu] = useState<ContextMenu>({ x: 0, y: 0, messageId: '', isVisible: false });
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [editingMessage, setEditingMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    // Close context menu on any click outside
+    const handleClick = () => setContextMenu(prev => ({ ...prev, isVisible: false }));
+    document.addEventListener('click', handleClick);
+    return () => document.removeEventListener('click', handleClick);
+  }, []);
+
+  const handleContextMenu = (e: React.MouseEvent, message: Message) => {
+    e.preventDefault();
+    setContextMenu({
+      x: e.pageX,
+      y: e.pageY,
+      messageId: message.id,
+      isVisible: true,
+    });
+  };
+
+  const handleReply = (message: Message) => {
+    setReplyingTo(message);
+    setContextMenu(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const handleEdit = (message: Message) => {
+    if (message.userId === session?.user?.id) {
+      setEditingMessage(message);
+      setNewMessage(message.content);
+      setContextMenu(prev => ({ ...prev, isVisible: false }));
+    }
+  };
+
+  const handleInfo = (message: Message) => {
+    // You can implement this to show message details in a modal
+    console.log('Message info:', message);
+    setContextMenu(prev => ({ ...prev, isVisible: false }));
+  };
+
+  const cancelReply = () => {
+    setReplyingTo(null);
+  };
+
+  const cancelEdit = () => {
+    setEditingMessage(null);
+    setNewMessage('');
+  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -76,7 +133,10 @@ export default function ChatPage() {
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: newMessage }),
+        body: JSON.stringify({
+          content: newMessage,
+          replyToId: replyingTo?.id,
+        }),
       });
 
       const data = await response.json();
@@ -86,12 +146,12 @@ export default function ChatPage() {
       }
 
       setNewMessage('');
+      setReplyingTo(null);
       await fetchMessages();
       setError(null);
     } catch (error) {
       console.error('Error sending message:', error);
       setError(error instanceof Error ? error.message : 'Failed to send message');
-      // Keep the message in the input if sending failed
       return;
     }
   };
@@ -167,21 +227,15 @@ export default function ChatPage() {
               <h1 className="text-xl font-semibold text-gray-800">IMT Chat Room</h1>
               <p className="text-sm text-gray-500 mt-0.5">Connect with students and admins</p>
             </div>
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2 text-sm text-gray-500">
+            {session?.user?.role === 'STUDENT' && (
+              <button
+                onClick={() => setIsReportModalOpen(true)}
+                className="bg-blue-500 text-white rounded-full px-4 py-1.5 text-sm hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+              >
                 <Clock className="w-4 h-4" />
-                <span>Messages update every 3s</span>
-              </div>
-              {session?.user?.role === 'STUDENT' && (
-                <button
-                  onClick={() => setIsReportModalOpen(true)}
-                  className="bg-blue-500 text-white rounded-full px-4 py-1.5 text-sm hover:bg-blue-600 transition-colors flex items-center gap-1.5"
-                >
-                  <Clock className="w-4 h-4" />
-                  Report Progress
-                </button>
-              )}
-            </div>
+                Report Progress
+              </button>
+            )}
           </div>
         </div>
 
@@ -217,6 +271,7 @@ export default function ChatPage() {
                 <div
                   key={message.id}
                   className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+                  onContextMenu={(e) => handleContextMenu(e, message)}
                 >
                   <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[45%]`}>
                     <div className="flex items-center gap-2 mb-0.5">
@@ -226,7 +281,7 @@ export default function ChatPage() {
                         </span>
                       </div>
                       <div className={`flex items-center gap-1.5 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-xs font-medium text-gray-800">
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">
                           {message.user.firstName} {message.user.lastName}
                         </span>
                         <span
@@ -245,6 +300,12 @@ export default function ChatPage() {
                         )}
                       </div>
                     </div>
+                    {message.replyTo && (
+                      <div className={`flex items-center gap-1 text-xs text-gray-500 mb-1 ${isCurrentUser ? 'self-end' : 'self-start'}`}>
+                        <Reply className="w-3 h-3" />
+                        <span>Replying to {message.replyTo.user.firstName}</span>
+                      </div>
+                    )}
                     <div
                       className={`rounded-xl px-2.5 py-1.5 ${
                         message.isReport
@@ -271,14 +332,79 @@ export default function ChatPage() {
           <div ref={messagesEndRef} />
         </div>
 
+        {/* Context Menu */}
+        {contextMenu.isVisible && (
+          <div
+            className="fixed bg-white rounded-lg shadow-lg border border-gray-100 py-1 z-50"
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => handleReply(messages.find(m => m.id === contextMenu.messageId)!)}
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Reply className="w-4 h-4" />
+              Reply
+            </button>
+            {messages.find(m => m.id === contextMenu.messageId)?.userId === session?.user?.id && (
+              <button
+                onClick={() => handleEdit(messages.find(m => m.id === contextMenu.messageId)!)}
+                className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Edit className="w-4 h-4" />
+                Edit
+              </button>
+            )}
+            <button
+              onClick={() => handleInfo(messages.find(m => m.id === contextMenu.messageId)!)}
+              className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2"
+            >
+              <Info className="w-4 h-4" />
+              Info
+            </button>
+          </div>
+        )}
+
         {/* Input */}
         <div className="p-4 bg-white border-t">
+          {replyingTo && (
+            <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Reply className="w-4 h-4" />
+                <span>Replying to {replyingTo.user.firstName}</span>
+              </div>
+              <button
+                onClick={cancelReply}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          )}
+          {editingMessage && (
+            <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mb-2">
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <Edit className="w-4 h-4" />
+                <span>Editing message</span>
+              </div>
+              <button
+                onClick={cancelEdit}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+          )}
           <form onSubmit={sendMessage} className="flex gap-3">
             <input
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type your message..."
+              placeholder={editingMessage ? "Edit your message..." : "Type your message..."}
               className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-[15px] focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all"
             />
             <button
@@ -287,7 +413,7 @@ export default function ChatPage() {
               className="bg-blue-500 text-white rounded-xl px-6 py-2.5 hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2 font-medium"
             >
               <Send className="w-4 h-4" />
-              <span>Send</span>
+              <span>{editingMessage ? 'Save' : 'Send'}</span>
             </button>
           </form>
         </div>

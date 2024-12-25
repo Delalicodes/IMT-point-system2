@@ -67,13 +67,17 @@ model ClockingRecord {
 }
 
 model ChatMessage {
-  id        String   @id @default(cuid())
-  content   String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  isReport  Boolean  @default(false)
+  id          String        @id @default(cuid())
+  content     String
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  isReport    Boolean      @default(false)
+  replyToId   String?
+  replyTo     ChatMessage? @relation("Replies", fields: [replyToId], references: [id])
+  replies     ChatMessage[] @relation("Replies")
 
   @@index([userId])
+  @@index([replyToId])
 }
