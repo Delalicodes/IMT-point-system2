@@ -9,6 +9,8 @@ export async function POST(request: Request) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
+    console.log('Current session:', session);
+
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized' },
@@ -46,16 +48,27 @@ export async function POST(request: Request) {
 
     // Update user profile with new image URL
     const imageUrl = `/uploads/${filename}`;
+    console.log('Updating user with imageUrl:', imageUrl);
+    
     const updatedUser = await prisma.user.update({
       where: { id: session.user.id },
       data: { imageUrl },
       select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
         imageUrl: true,
       },
     });
 
+    console.log('Updated user:', updatedUser);
+
     return NextResponse.json({ 
       imageUrl: updatedUser.imageUrl,
+      user: updatedUser,
       message: 'Profile picture updated successfully' 
     });
   } catch (error) {

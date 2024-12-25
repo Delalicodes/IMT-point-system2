@@ -18,17 +18,51 @@ import Link from 'next/link';
 export default function Header() {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const router = useRouter();
   const { user } = useAuth();
 
-  // Initialize theme from localStorage on component mount
+  // Initialize theme and profile image
   useEffect(() => {
     const theme = localStorage.getItem('theme');
     setIsDarkMode(theme === 'dark');
     if (theme === 'dark') {
       document.documentElement.classList.add('dark');
     }
+
+    // Set initial profile image
+    if (user?.imageUrl) {
+      setProfileImage(user.imageUrl);
+    }
+  }, [user?.imageUrl]);
+
+  // Fetch fresh user data periodically
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
+        if (data.imageUrl) {
+          setProfileImage(data.imageUrl);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    // Fetch immediately and then every 5 seconds
+    fetchUserData();
+    const interval = setInterval(fetchUserData, 5000);
+
+    return () => clearInterval(interval);
   }, []);
+
+  // Force re-render when session changes
+  useEffect(() => {
+    if (user?.imageUrl) {
+      setIsProfileOpen(false); // Close dropdown if open
+    }
+  }, [user?.imageUrl]);
 
   const toggleTheme = () => {
     setIsDarkMode(!isDarkMode);
@@ -104,10 +138,10 @@ export default function Header() {
             className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden">
-              {user?.imageUrl ? (
+              {profileImage ? (
                 <img
-                  src={user.imageUrl}
-                  alt={user.name || ''}
+                  src={profileImage}
+                  alt={user?.name || ''}
                   className="w-full h-full object-cover"
                 />
               ) : (

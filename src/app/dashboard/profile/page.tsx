@@ -156,11 +156,27 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to upload profile picture');
       }
 
+      // Update local state
       setProfile({ ...profile, imageUrl: data.imageUrl });
       setSuccess('Profile picture updated successfully');
       
-      // Update session to reflect new image immediately
-      await updateSession();
+      // Update session with new user data
+      await updateSession({
+        ...session,
+        user: {
+          ...session?.user,
+          imageUrl: data.imageUrl,
+        },
+      });
+
+      // Trigger a global event to notify other components
+      const event = new CustomEvent('profileImageUpdated', { detail: data.imageUrl });
+      window.dispatchEvent(event);
+
+      // Force a hard refresh after a short delay
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       setError(error instanceof Error ? error.message : 'Failed to upload profile picture');

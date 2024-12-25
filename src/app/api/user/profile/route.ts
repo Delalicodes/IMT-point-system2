@@ -5,57 +5,40 @@ import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    console.log('GET /api/user/profile - Start');
     const session = await getServerSession(authOptions);
-    console.log('Session:', JSON.stringify(session, null, 2));
 
     if (!session?.user?.id) {
-      console.log('No session or user ID found');
       return NextResponse.json(
-        { error: 'Unauthorized', session: session },
+        { error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    console.log('Fetching user with ID:', session.user.id);
-
     const user = await prisma.user.findUnique({
-      where: { 
-        id: session.user.id 
+      where: { id: session.user.id },
+      select: {
+        id: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        imageUrl: true,
       },
     });
 
-    console.log('Database response:', JSON.stringify(user, null, 2));
-
     if (!user) {
-      console.log('User not found in database');
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
       );
     }
 
-    // Remove sensitive data
-    const safeUser = {
-      firstName: user.firstName,
-      lastName: user.lastName,
-      email: user.email,
-      phoneNumber: user.phoneNumber,
-      username: user.username,
-      imageUrl: user.imageUrl,
-    };
-
-    console.log('Returning user data:', JSON.stringify(safeUser, null, 2));
-    return NextResponse.json(safeUser);
+    return NextResponse.json(user);
   } catch (error) {
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-    
+    console.error('Error fetching user profile:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch user profile', details: error.message },
+      { error: 'Failed to fetch user profile' },
       { status: 500 }
     );
   }

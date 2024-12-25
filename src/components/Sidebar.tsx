@@ -14,7 +14,7 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 const adminMenuItems = [
@@ -45,10 +45,36 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [openSetup, setOpenSetup] = useState(false);
+  const [profileImage, setProfileImage] = useState<string | null>(null);
   const { data: session } = useSession();
 
   const isStudent = session?.user?.role === 'STUDENT';
   const menuItems = isStudent ? studentMenuItems : adminMenuItems;
+
+  useEffect(() => {
+    if (session?.user?.imageUrl) {
+      setProfileImage(session.user.imageUrl);
+    }
+  }, [session?.user?.imageUrl]);
+
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const response = await fetch('/api/user/profile');
+        const data = await response.json();
+        if (data.imageUrl) {
+          setProfileImage(data.imageUrl);
+        }
+      } catch (error) {
+        console.error('Error fetching user data:', error);
+      }
+    };
+
+    fetchUserData();
+    const interval = setInterval(fetchUserData, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleNavigation = (href: string) => {
     if (href !== '#') {
@@ -59,6 +85,17 @@ export default function Sidebar() {
   return (
     <div className="fixed top-0 left-0 flex flex-col h-screen bg-[#0A1E54] text-white w-64 p-6">
       <div className="flex items-center mb-8">
+        <div className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden mr-3">
+          {profileImage ? (
+            <img
+              src={profileImage}
+              alt={session?.user?.name || ''}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <Users className="w-6 h-6 text-white" />
+          )}
+        </div>
         <h1 className="text-2xl font-bold">IMT POINTS</h1>
       </div>
 
