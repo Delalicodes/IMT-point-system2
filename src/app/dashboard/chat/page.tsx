@@ -537,18 +537,43 @@ export default function ChatPage() {
                 </p>
               </div>
               <div>
-                <h3 className="font-medium text-gray-700">Views ({messageViews[infoModalMessage.id]?.length || 0})</h3>
-                <div className="mt-2 space-y-2">
+                <h3 className="font-medium text-gray-700 mb-3">Views ({messageViews[infoModalMessage.id]?.length || 0})</h3>
+                <div className="space-y-3">
                   {messageViews[infoModalMessage.id]?.map((view: any) => (
-                    <div key={view.id} className="flex items-center justify-between text-sm">
-                      <span className="text-gray-600">
-                        {view.user.firstName} {view.user.lastName}
-                      </span>
-                      <span className="text-gray-400">
-                        {new Date(view.viewedAt).toLocaleString()}
-                      </span>
+                    <div key={view.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                          <span className="text-sm font-medium text-white">
+                            {view.user.firstName[0]}
+                          </span>
+                        </div>
+                        <div className="flex flex-col">
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-sm px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">
+                              {view.user.firstName} {view.user.lastName}
+                            </span>
+                            <span
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                                view.user.role === 'ADMIN'
+                                  ? 'bg-purple-100 text-purple-700'
+                                  : 'bg-emerald-100 text-emerald-700'
+                              }`}
+                            >
+                              {view.user.role.toLowerCase()}
+                            </span>
+                          </div>
+                          <span className="text-xs text-gray-500 mt-0.5">
+                            {new Date(view.viewedAt).toLocaleString()}
+                          </span>
+                        </div>
+                      </div>
                     </div>
                   ))}
+                  {messageViews[infoModalMessage.id]?.length === 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      <p className="text-sm">No views yet</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
