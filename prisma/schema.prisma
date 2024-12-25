@@ -26,6 +26,7 @@ model User {
   courseId    String?
   course      Course?   @relation(fields: [courseId], references: [id])
   points      Point[]
+  messages    ChatMessage[]
   clockingRecords ClockingRecord[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -63,4 +64,15 @@ model ClockingRecord {
 
   @@index([userId])
   @@map("clocking_records")
+}
+
+model ChatMessage {
+  id        String   @id @default(cuid())
+  content   String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
