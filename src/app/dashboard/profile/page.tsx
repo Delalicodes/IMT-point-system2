@@ -22,12 +22,12 @@ interface PasswordUpdate {
 export default function ProfilePage() {
   const { data: session, update: updateSession } = useSession();
   const [profile, setProfile] = useState<UserProfile>({
-    firstName: '',
-    lastName: '',
-    email: '',
-    phoneNumber: '',
-    username: '',
-    imageUrl: null,
+    firstName: session?.user?.firstName || '',
+    lastName: session?.user?.lastName || '',
+    email: session?.user?.email || '',
+    phoneNumber: session?.user?.phoneNumber || '',
+    username: session?.user?.username || '',
+    imageUrl: session?.user?.imageUrl || null,
   });
   const [passwordData, setPasswordData] = useState<PasswordUpdate>({
     currentPassword: '',
@@ -39,6 +39,19 @@ export default function ProfilePage() {
   const [success, setSuccess] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  useEffect(() => {
+    if (session?.user) {
+      setProfile({
+        firstName: session.user.firstName || '',
+        lastName: session.user.lastName || '',
+        email: session.user.email || '',
+        phoneNumber: session.user.phoneNumber || '',
+        username: session.user.username || '',
+        imageUrl: session.user.imageUrl || null,
+      });
+    }
+  }, [session]);
 
   useEffect(() => {
     fetchProfile();
@@ -53,7 +66,14 @@ export default function ProfilePage() {
         throw new Error(data.error || 'Failed to fetch profile');
       }
 
-      setProfile(data);
+      setProfile({
+        firstName: data.firstName || '',
+        lastName: data.lastName || '',
+        email: data.email || '',
+        phoneNumber: data.phoneNumber || '',
+        username: data.username || '',
+        imageUrl: data.imageUrl || null,
+      });
       setIsLoading(false);
     } catch (error) {
       console.error('Error fetching profile:', error);
