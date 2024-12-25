@@ -335,14 +335,14 @@ export default function ChatPage() {
                     <div
                       className={`rounded-xl px-2.5 py-1.5 ${
                         message.isReport
-                          ? 'bg-blue-500 text-white rounded-tr-none'
+                          ? 'bg-emerald-500 text-white rounded-tr-none'
                           : isCurrentUser
                             ? 'bg-blue-500 text-white rounded-tr-none'
                             : 'bg-white shadow-sm border border-gray-100 rounded-tl-none'
                       }`}
                     >
                       <p className="text-xs leading-relaxed">{message.content}</p>
-                      <span className={`text-[10px] mt-0.5 block ${message.isReport || isCurrentUser ? 'text-white/70' : 'text-gray-400'}`}>
+                      <span className={`text-[10px] mt-0.5 block ${message.isReport ? 'text-white/70' : isCurrentUser ? 'text-white/70' : 'text-gray-400'}`}>
                         {new Date(message.createdAt).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit',
