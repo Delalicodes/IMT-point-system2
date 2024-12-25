@@ -15,6 +15,7 @@ interface Message {
     firstName: string;
     lastName: string;
     role: string;
+    imageUrl: string | null;
   };
   createdAt: string;
 }
@@ -330,10 +331,18 @@ export default function ChatPage() {
                 >
                   <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[45%]`}>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-xs font-medium text-white">
-                          {message.user.firstName[0]}
-                        </span>
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        {message.user.imageUrl ? (
+                          <img
+                            src={message.user.imageUrl}
+                            alt={`${message.user.firstName} ${message.user.lastName}`}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xs font-medium text-white">
+                            {message.user.firstName[0]}
+                          </span>
+                        )}
                       </div>
                       <div className={`flex items-center gap-1.5 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">
