@@ -160,8 +160,11 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('PATCH /api/chat/messages - Starting');
+    console.log('Session:', JSON.stringify(session, null, 2));
 
     if (!session?.user?.id) {
+      console.log('Unauthorized - No user session');
       return NextResponse.json(
         { error: 'Unauthorized - Please sign in' },
         { status: 401 }
@@ -169,9 +172,11 @@ export async function PATCH(request: Request) {
     }
 
     const body = await request.json();
+    console.log('Request body:', body);
     const { messageId, content } = body;
 
     if (!content?.trim()) {
+      console.log('Invalid request - Empty content');
       return NextResponse.json(
         { error: 'Message content is required' },
         { status: 400 }
@@ -183,6 +188,7 @@ export async function PATCH(request: Request) {
     });
 
     if (!existingMessage) {
+      console.log('Message not found:', messageId);
       return NextResponse.json(
         { error: 'Message not found' },
         { status: 404 }
@@ -190,15 +196,20 @@ export async function PATCH(request: Request) {
     }
 
     if (existingMessage.userId !== session.user.id) {
+      console.log('Unauthorized edit attempt. Message user:', existingMessage.userId, 'Session user:', session.user.id);
       return NextResponse.json(
         { error: 'Unauthorized - Can only edit your own messages' },
         { status: 403 }
       );
     }
 
+    console.log('Updating message:', messageId);
     const updatedMessage = await prisma.chatMessage.update({
       where: { id: messageId },
-      data: { content: content.trim() },
+      data: { 
+        content: content.trim(),
+        updatedAt: new Date(),
+      },
       include: {
         user: {
           select: {
@@ -223,9 +234,21 @@ export async function PATCH(request: Request) {
       },
     });
 
+    console.log('Message updated successfully:', updatedMessage);
     return NextResponse.json(updatedMessage);
   } catch (error) {
     console.error('Error in PATCH /api/chat/messages:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+      return NextResponse.json(
+        { error: `Database error: ${error.message}` },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
       { error: 'Failed to update message' },
       { status: 500 }

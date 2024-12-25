@@ -130,25 +130,51 @@ export default function ChatPage() {
     if (!newMessage.trim() || !session?.user) return;
 
     try {
-      const response = await fetch('/api/chat/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: newMessage,
-          replyToId: replyingTo?.id,
-        }),
-      });
+      if (editingMessage) {
+        // Handle edit
+        const response = await fetch('/api/chat/messages', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messageId: editingMessage.id,
+            content: newMessage,
+          }),
+        });
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send message');
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to edit message');
+        }
+
+        setMessages(messages.map(msg => 
+          msg.id === editingMessage.id ? data : msg
+        ));
+        setNewMessage('');
+        setEditingMessage(null);
+        setError(null);
+      } else {
+        // Handle new message or reply
+        const response = await fetch('/api/chat/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            content: newMessage,
+            replyToId: replyingTo?.id,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to send message');
+        }
+
+        setNewMessage('');
+        setReplyingTo(null);
+        await fetchMessages();
+        setError(null);
       }
-
-      setNewMessage('');
-      setReplyingTo(null);
-      await fetchMessages();
-      setError(null);
     } catch (error) {
       console.error('Error sending message:', error);
       setError(error instanceof Error ? error.message : 'Failed to send message');
