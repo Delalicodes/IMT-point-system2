@@ -331,7 +331,7 @@ export default function ChatPage() {
                 >
                   <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[45%]`}>
                     <div className="flex items-center gap-2 mb-0.5">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-white shadow-sm">
                         {message.user.imageUrl ? (
                           <img
                             src={message.user.imageUrl}
