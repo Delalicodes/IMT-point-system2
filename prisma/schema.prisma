@@ -28,6 +28,7 @@ model User {
   points      Point[]
   messages    ChatMessage[]
   clockingRecords ClockingRecord[]
+  messageViews MessageView[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
@@ -77,7 +78,21 @@ model ChatMessage {
   replyToId   String?
   replyTo     ChatMessage? @relation("Replies", fields: [replyToId], references: [id])
   replies     ChatMessage[] @relation("Replies")
+  views       MessageView[]
 
   @@index([userId])
   @@index([replyToId])
+}
+
+model MessageView {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  messageId String
+  message   ChatMessage @relation(fields: [messageId], references: [id])
+  viewedAt  DateTime @default(now())
+
+  @@unique([userId, messageId])
+  @@index([userId])
+  @@index([messageId])
 }

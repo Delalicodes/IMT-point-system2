@@ -35,6 +35,8 @@ export default function ChatPage() {
   const [contextMenu, setContextMenu] = useState<ContextMenu>({ x: 0, y: 0, messageId: '', isVisible: false });
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
+  const [messageViews, setMessageViews] = useState<Record<string, any[]>>({});
+  const [infoModalMessage, setInfoModalMessage] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,10 +71,32 @@ export default function ChatPage() {
     }
   };
 
-  const handleInfo = (message: Message) => {
-    // You can implement this to show message details in a modal
-    console.log('Message info:', message);
-    setContextMenu(prev => ({ ...prev, isVisible: false }));
+  const handleInfo = async (message: Message) => {
+    try {
+      // Record view
+      await fetch(`/api/chat/messages/${message.id}/views`, {
+        method: 'POST',
+      });
+
+      // Get views
+      const response = await fetch(`/api/chat/messages/${message.id}/views`);
+      const views = await response.json();
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch message views');
+      }
+
+      setMessageViews(prev => ({
+        ...prev,
+        [message.id]: views
+      }));
+
+      // Show info modal
+      setInfoModalMessage(message);
+      setContextMenu(prev => ({ ...prev, isVisible: false }));
+    } catch (error) {
+      console.error('Error fetching message views:', error);
+    }
   };
 
   const cancelReply = () => {
@@ -485,6 +509,49 @@ export default function ChatPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Info Modal */}
+      {infoModalMessage && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-semibold text-gray-800">Message Info</h2>
+              <button
+                onClick={() => setInfoModalMessage(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
+                </svg>
+              </button>
+            </div>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-gray-700">Message Details</h3>
+                <p className="text-sm text-gray-500 mt-1">
+                  Sent by {infoModalMessage.user.firstName} {infoModalMessage.user.lastName} at{' '}
+                  {new Date(infoModalMessage.createdAt).toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <h3 className="font-medium text-gray-700">Views ({messageViews[infoModalMessage.id]?.length || 0})</h3>
+                <div className="mt-2 space-y-2">
+                  {messageViews[infoModalMessage.id]?.map((view: any) => (
+                    <div key={view.id} className="flex items-center justify-between text-sm">
+                      <span className="text-gray-600">
+                        {view.user.firstName} {view.user.lastName}
+                      </span>
+                      <span className="text-gray-400">
+                        {new Date(view.viewedAt).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
