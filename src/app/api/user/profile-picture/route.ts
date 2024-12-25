@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/prisma';
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
 export async function POST(request: Request) {
@@ -35,19 +35,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create uploads directory if it doesn't exist
-    const uploadDir = join(process.cwd(), 'public', 'uploads');
-    try {
-      await mkdir(uploadDir, { recursive: true });
-    } catch (error) {
-      // Ignore error if directory already exists
-    }
-
     // Create unique filename
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
     const filename = `${session.user.id}-${Date.now()}.${file.type.split('/')[1]}`;
-    const filepath = join(uploadDir, filename);
+    const filepath = join(process.cwd(), 'public', 'uploads', filename);
 
     // Save file
     await writeFile(filepath, buffer);

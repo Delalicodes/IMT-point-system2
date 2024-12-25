@@ -158,8 +158,9 @@ export default function ProfilePage() {
 
       setProfile({ ...profile, imageUrl: data.imageUrl });
       setSuccess('Profile picture updated successfully');
-      // Update session to reflect new image
-      updateSession();
+      
+      // Update session to reflect new image immediately
+      await updateSession();
     } catch (error) {
       console.error('Error uploading profile picture:', error);
       setError(error instanceof Error ? error.message : 'Failed to upload profile picture');
