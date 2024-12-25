@@ -166,21 +166,21 @@ export default function ChatPage() {
               return (
                 <div
                   key={message.id}
-                  className={`flex items-start gap-3 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
+                  className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
                 >
-                  <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[75%]`}>
-                    <div className="flex items-center gap-2 mb-1">
-                      <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
-                        <span className="text-sm font-medium text-white">
+                  <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[45%]`}>
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                        <span className="text-xs font-medium text-white">
                           {message.user.firstName[0]}
                         </span>
                       </div>
-                      <div className={`flex items-center gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-sm font-medium text-gray-800">
+                      <div className={`flex items-center gap-1.5 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
+                        <span className="text-xs font-medium text-gray-800">
                           {message.user.firstName} {message.user.lastName}
                         </span>
                         <span
-                          className={`text-xs px-2 py-0.5 rounded-full ${
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                             message.user.role === 'ADMIN'
                               ? 'bg-purple-100 text-purple-700'
                               : 'bg-emerald-100 text-emerald-700'
@@ -191,14 +191,14 @@ export default function ChatPage() {
                       </div>
                     </div>
                     <div
-                      className={`rounded-2xl px-4 py-2.5 ${
+                      className={`rounded-xl px-2.5 py-1.5 ${
                         isCurrentUser
                           ? 'bg-blue-500 text-white rounded-tr-none'
                           : 'bg-white shadow-sm border border-gray-100 rounded-tl-none'
                       }`}
                     >
-                      <p className="text-[15px] leading-relaxed">{message.content}</p>
-                      <span className={`text-xs mt-1 block ${isCurrentUser ? 'text-blue-100' : 'text-gray-400'}`}>
+                      <p className="text-xs leading-relaxed">{message.content}</p>
+                      <span className={`text-[10px] mt-0.5 block ${isCurrentUser ? 'text-blue-100' : 'text-gray-400'}`}>
                         {new Date(message.createdAt).toLocaleTimeString([], { 
                           hour: '2-digit', 
                           minute: '2-digit',
