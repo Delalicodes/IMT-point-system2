@@ -76,15 +76,15 @@ export default function StudentsPage() {
         throw new Error('Failed to update status');
       }
 
-      const updatedStudent = await response.json();
-      setStudents(prevStudents =>
-        prevStudents.map(student =>
-          student.id === studentId ? updatedStudent : student
-        )
-      );
+      // Fetch fresh data after status update
+      await fetchStudents();
       
+      // Update selected student if modal is open
       if (selectedStudent?.id === studentId) {
-        setSelectedStudent(updatedStudent);
+        const updatedStudent = students.find(s => s.id === studentId);
+        if (updatedStudent) {
+          setSelectedStudent(updatedStudent);
+        }
       }
       
       toast.success('Status updated successfully');
@@ -189,7 +189,7 @@ export default function StudentsPage() {
         </div>
 
         {/* Students Table */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden overflow-x-auto">
           {isLoading ? (
             <div className="p-8 text-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
@@ -201,91 +201,95 @@ export default function StudentsPage() {
               <p className="text-gray-500">No students found</p>
             </div>
           ) : (
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {filteredStudents.map((student) => (
-                  <tr
-                    key={student.id}
-                    onClick={() => handleRowClick(student)}
-                    className="hover:bg-gray-50 cursor-pointer transition-colors"
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <span className="text-indigo-600 font-medium">
-                              {student.firstName[0]}{student.lastName[0]}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">
-                            {student.firstName} {student.lastName}
-                          </div>
-                          <div className="text-sm text-gray-500">{student.username}</div>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
-                        {student.course?.name || 'No Course'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {student.email}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <select
-                        value={student.status}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          handleStatusChange(student.id, e.target.value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[student.status as keyof typeof statusColors]}`}
-                        disabled={isUpdatingStatus}
+            <div className="min-w-full inline-block align-middle">
+              <div className="overflow-hidden">
+                <table className="min-w-full divide-y divide-gray-200">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
+                      <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Course</th>
+                      <th className="hidden md:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                      <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                      <th className="hidden sm:table-cell px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Joined</th>
+                    </tr>
+                  </thead>
+                  <tbody className="bg-white divide-y divide-gray-200">
+                    {filteredStudents.map((student) => (
+                      <tr
+                        key={student.id}
+                        onClick={() => handleRowClick(student)}
+                        className="hover:bg-gray-50 cursor-pointer transition-colors"
                       >
-                        {statusOptions.map(status => (
-                          <option key={status} value={status}>{status}</option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {new Date(student.createdAt).toLocaleDateString()}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="h-8 sm:h-10 w-8 sm:w-10 flex-shrink-0">
+                              <div className="h-full w-full rounded-full bg-indigo-100 flex items-center justify-center">
+                                <span className="text-indigo-600 font-medium text-sm sm:text-base">
+                                  {student.firstName[0]}{student.lastName[0]}
+                                </span>
+                              </div>
+                            </div>
+                            <div className="ml-2 sm:ml-4">
+                              <div className="text-sm font-medium text-gray-900">
+                                {student.firstName} {student.lastName}
+                              </div>
+                              <div className="text-xs sm:text-sm text-gray-500 hidden sm:block">{student.username}</div>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap">
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-indigo-50 text-indigo-700">
+                            {student.course?.name || 'No Course'}
+                          </span>
+                        </td>
+                        <td className="hidden md:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {student.email}
+                        </td>
+                        <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
+                          <select
+                            value={student.status}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              handleStatusChange(student.id, e.target.value);
+                            }}
+                            onClick={(e) => e.stopPropagation()}
+                            className={`inline-flex rounded-full px-2 sm:px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${statusColors[student.status as keyof typeof statusColors]}`}
+                            disabled={isUpdatingStatus}
+                          >
+                            {statusOptions.map(status => (
+                              <option key={status} value={status}>{status}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="hidden sm:table-cell px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {new Date(student.createdAt).toLocaleDateString()}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
           )}
         </div>
 
         {/* Student Details Modal */}
         {showModal && selectedStudent && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <div className="p-6 border-b border-gray-100">
+            <div className="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+              <div className="p-4 sm:p-6 border-b border-gray-100">
                 <div className="flex justify-between items-start">
                   <div className="flex items-center space-x-3">
-                    <div className="h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
-                      <span className="text-indigo-600 font-medium text-lg">
+                    <div className="h-10 sm:h-12 w-10 sm:w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+                      <span className="text-indigo-600 font-medium text-base sm:text-lg">
                         {selectedStudent.firstName[0]}{selectedStudent.lastName[0]}
                       </span>
                     </div>
                     <div>
-                      <h3 className="text-xl font-semibold text-gray-900">
+                      <h3 className="text-lg sm:text-xl font-semibold text-gray-900">
                         {selectedStudent.firstName} {selectedStudent.lastName}
                       </h3>
-                      <p className="text-sm text-gray-500">{selectedStudent.username}</p>
+                      <p className="text-xs sm:text-sm text-gray-500">{selectedStudent.username}</p>
                     </div>
                   </div>
                   <button
@@ -293,17 +297,17 @@ export default function StudentsPage() {
                     className="text-gray-400 hover:text-gray-500 transition-colors"
                   >
                     <span className="sr-only">Close</span>
-                    <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg className="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
               </div>
 
-              <div className="p-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="p-4 sm:p-6 space-y-4 sm:space-y-6">
+                <div className="grid grid-cols-1 gap-4 sm:gap-6">
                   {/* Status */}
-                  <div className="md:col-span-2">
+                  <div>
                     <div className="flex items-center justify-between">
                       <h4 className="text-sm font-medium text-gray-500">Current Status</h4>
                       <select
@@ -320,12 +324,12 @@ export default function StudentsPage() {
                   </div>
 
                   {/* Contact Information */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <h4 className="text-sm font-medium text-gray-500">Contact Information</h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div className="flex items-center space-x-3 text-sm">
                         <Mail className="h-5 w-5 text-gray-400" />
-                        <span className="text-gray-900">{selectedStudent.email}</span>
+                        <span className="text-gray-900 break-all">{selectedStudent.email}</span>
                       </div>
                       <div className="flex items-center space-x-3 text-sm">
                         <Phone className="h-5 w-5 text-gray-400" />
@@ -335,9 +339,9 @@ export default function StudentsPage() {
                   </div>
 
                   {/* Course Information */}
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     <h4 className="text-sm font-medium text-gray-500">Course Information</h4>
-                    <div className="space-y-3">
+                    <div className="space-y-2">
                       <div className="flex items-center space-x-3 text-sm">
                         <BookOpen className="h-5 w-5 text-gray-400" />
                         <span className="text-gray-900">
@@ -354,9 +358,9 @@ export default function StudentsPage() {
                   </div>
 
                   {/* Additional Information */}
-                  <div className="space-y-4 md:col-span-2">
+                  <div className="space-y-3">
                     <h4 className="text-sm font-medium text-gray-500">Additional Information</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div className="flex items-center space-x-3 text-sm">
                         <Calendar className="h-5 w-5 text-gray-400" />
                         <div>
@@ -370,7 +374,7 @@ export default function StudentsPage() {
                         <User className="h-5 w-5 text-gray-400" />
                         <div>
                           <span className="block text-gray-500">Student ID</span>
-                          <span className="text-gray-900">{selectedStudent.id}</span>
+                          <span className="text-gray-900 break-all">{selectedStudent.id}</span>
                         </div>
                       </div>
                     </div>
@@ -378,10 +382,10 @@ export default function StudentsPage() {
                 </div>
               </div>
 
-              <div className="p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
+              <div className="p-4 sm:p-6 bg-gray-50 border-t border-gray-100 flex justify-end">
                 <button
                   onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
+                  className="px-4 py-2 bg-white border border-gray-200 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
                 >
                   Close
                 </button>

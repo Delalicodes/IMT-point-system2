@@ -12,6 +12,16 @@ export async function GET() {
         firstName: true,
         lastName: true,
         email: true,
+        username: true,
+        phoneNumber: true,
+        status: true,
+        createdAt: true,
+        course: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       },
       orderBy: {
         firstName: 'asc',
