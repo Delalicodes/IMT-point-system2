@@ -21,10 +21,16 @@ export async function POST(req: Request) {
     const body = await req.json();
     console.log('Request body:', body);
 
-    const { type } = body;
+    const { type, subjectId } = body;
     if (!['IN', 'BREAK', 'OUT'].includes(type)) {
       console.log('Invalid clocking type:', type);
       return NextResponse.json({ error: 'Invalid clocking type' }, { status: 400 });
+    }
+
+    // Require subjectId when clocking in
+    if (type === 'IN' && !subjectId) {
+      console.log('Missing subjectId for clock in');
+      return NextResponse.json({ error: 'Subject selection is required for clocking in' }, { status: 400 });
     }
 
     // Find user by username from session
@@ -77,6 +83,7 @@ export async function POST(req: Request) {
       data: {
         userId: user.id,
         type,
+        subjectId,
         timestamp: new Date(),
       },
     });

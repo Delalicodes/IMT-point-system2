@@ -9,9 +9,18 @@ import {
   Flex,
   Badge,
   Metric,
+  Select,
+  SelectItem,
 } from '@tremor/react';
-import { Clock, Coffee, LogOut, History, Timer, Calendar } from 'lucide-react';
-import { format, formatDistanceToNow, isWithinInterval, startOfDay, endOfDay, subDays } from 'date-fns';
+import { Clock, Coffee, LogOut, History, Timer, Calendar, BookOpen } from 'lucide-react';
+import {
+  format,
+  formatDistanceToNow,
+  isWithinInterval,
+  startOfDay,
+  endOfDay,
+  subDays,
+} from 'date-fns';
 import { DayPicker, SelectRangeEventHandler } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
 
@@ -21,6 +30,13 @@ interface ClockingRecord {
   type: 'IN' | 'BREAK' | 'OUT';
   timestamp: string;
   totalHours?: number;
+  subject?: string;
+}
+
+interface Subject {
+  id: string;
+  name: string;
+  courseId: string;
 }
 
 interface DateRange {
@@ -38,9 +54,13 @@ export default function ClockingDialog() {
   const [lastClockIn, setLastClockIn] = useState<Date | null>(null);
   const [dateRange, setDateRange] = useState<DateRange>({ from: undefined, to: undefined });
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string>('');
+  const [userCourse, setUserCourse] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     fetchClockingHistory();
+    fetchUserCourseAndSubjects();
   }, []);
 
   useEffect(() => {
@@ -66,11 +86,11 @@ export default function ClockingDialog() {
 
       if (data.history && data.history.length > 0) {
         setClockingHistory(data.history);
-        
+
         // Get the most recent record
         const latestRecord = data.history[0];
         console.log('Latest record:', latestRecord);
-        
+
         // Update status based on latest record
         setCurrentStatus(latestRecord.type);
         if (latestRecord.type === 'IN') {
@@ -89,7 +109,32 @@ export default function ClockingDialog() {
     }
   };
 
+  const fetchUserCourseAndSubjects = async () => {
+    try {
+      // Fetch user's course
+      const courseResponse = await fetch('/api/user/course');
+      if (!courseResponse.ok) throw new Error('Failed to fetch user course');
+      const courseData = await courseResponse.json();
+      setUserCourse(courseData.course);
+
+      if (courseData.course?.id) {
+        // Fetch subjects for the course
+        const subjectsResponse = await fetch(`/api/courses/${courseData.course.id}/subjects`);
+        if (!subjectsResponse.ok) throw new Error('Failed to fetch subjects');
+        const subjectsData = await subjectsResponse.json();
+        setSubjects(subjectsData);
+      }
+    } catch (error) {
+      console.error('Error fetching course and subjects:', error);
+    }
+  };
+
   const handleClocking = async (type: 'IN' | 'BREAK' | 'OUT') => {
+    if (type === 'IN' && !selectedSubject) {
+      alert('Please select a subject before clocking in');
+      return;
+    }
+
     setIsLoading(true);
     try {
       console.log('Clocking action started:', type);
@@ -98,47 +143,56 @@ export default function ClockingDialog() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ type }),
+        body: JSON.stringify({
+          type,
+          subject: type === 'IN' ? selectedSubject : undefined,
+        }),
       });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Clocking response:', data);
-        
-        // Update status immediately
-        setCurrentStatus(type);
-        if (type === 'IN') {
-          setLastClockIn(new Date());
-        } else if (type === 'OUT') {
-          setLastClockIn(null);
-        }
-        
-        // Fetch latest history without closing the dialog
-        await fetchClockingHistory();
-      } else {
-        // Show error message if the request failed
-        const errorData = await response.json();
-        console.error('Clocking error:', errorData);
+
+      if (!response.ok) {
+        throw new Error('Failed to record clocking');
       }
+
+      const data = await response.json();
+      console.log('Clocking response:', data);
+
+      // Update status and history
+      setCurrentStatus(type);
+      if (type === 'IN') {
+        setLastClockIn(new Date());
+      } else if (type === 'OUT') {
+        setLastClockIn(null);
+        setSelectedSubject('');
+      }
+
+      await fetchClockingHistory();
+      setShowClockingDialog(false);
     } catch (error) {
       console.error('Error recording clocking:', error);
+    } finally {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   };
 
   const getStatusColor = (status: 'IN' | 'OUT' | 'BREAK') => {
     switch (status) {
-      case 'IN': return 'bg-emerald-100 text-emerald-800';
-      case 'BREAK': return 'bg-amber-100 text-amber-800';
-      case 'OUT': return 'bg-rose-100 text-rose-800';
+      case 'IN':
+        return 'bg-emerald-100 text-emerald-800';
+      case 'BREAK':
+        return 'bg-amber-100 text-amber-800';
+      case 'OUT':
+        return 'bg-rose-100 text-rose-800';
     }
   };
 
   const getNextAction = () => {
     switch (currentStatus) {
-      case 'OUT': return { type: 'IN', label: 'Clock In', Icon: Clock };
-      case 'IN': return { type: 'OUT', label: 'Clock Out', Icon: LogOut };
-      case 'BREAK': return { type: 'IN', label: 'Resume', Icon: Timer };
+      case 'OUT':
+        return { type: 'IN', label: 'Clock In', Icon: Clock };
+      case 'IN':
+        return { type: 'OUT', label: 'Clock Out', Icon: LogOut };
+      case 'BREAK':
+        return { type: 'IN', label: 'Resume', Icon: Timer };
     }
   };
 
@@ -149,13 +203,13 @@ export default function ClockingDialog() {
     setShowDatePicker(false);
   };
 
-  const filteredHistory = clockingHistory.filter(record => {
+  const filteredHistory = clockingHistory.filter((record) => {
     if (!dateRange.from) return true;
-    
+
     const recordDate = new Date(record.timestamp);
     const from = startOfDay(dateRange.from);
     const to = dateRange.to ? endOfDay(dateRange.to) : endOfDay(dateRange.from);
-    
+
     return isWithinInterval(recordDate, { start: from, end: to });
   });
 
@@ -167,7 +221,7 @@ export default function ClockingDialog() {
     const today = new Date();
     setDateRange({
       from: subDays(today, 7),
-      to: today
+      to: today,
     });
   };
 
@@ -196,118 +250,95 @@ export default function ClockingDialog() {
       </Button>
 
       {showClockingDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <Card className="w-full max-w-md bg-white shadow-2xl rounded-3xl overflow-hidden">
-            <div className="flex justify-between items-center mb-6">
-              <div>
-                <Title>Time Tracking</Title>
-                <Text className="text-gray-500">Manage your work hours</Text>
-              </div>
-              <Button
-                size="sm"
-                variant="secondary"
-                onClick={() => setShowClockingDialog(false)}
-                className="rounded-full p-2 h-8 w-8"
-              >
-                ✕
-              </Button>
-            </div>
-
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-lg">
             <div className="space-y-6">
-              {/* Current Status */}
-              <div className="text-center">
-                <Badge
-                  size="xl"
-                  className={`${getStatusColor(currentStatus)} px-4 py-2 text-sm font-medium rounded-full`}
+              <div className="flex justify-between items-center">
+                <Title>Clocking Management</Title>
+                <Button
+                  variant="light"
+                  color="gray"
+                  onClick={() => setShowClockingDialog(false)}
                 >
-                  {currentStatus === 'IN' && 'Currently Working'}
-                  {currentStatus === 'OUT' && 'Not Working'}
-                  {currentStatus === 'BREAK' && 'On Break'}
-                </Badge>
-                {currentStatus !== 'OUT' && (
-                  <Text className="mt-2 text-gray-600">
-                    Time elapsed: {timeElapsed}
-                  </Text>
+                  ✕
+                </Button>
+              </div>
+
+              {currentStatus === 'OUT' && (
+                <div className="space-y-4">
+                  <Text>Select the subject you'll be working on:</Text>
+                  <Select
+                    value={selectedSubject}
+                    onValueChange={setSelectedSubject}
+                    placeholder="Choose a subject..."
+                    icon={BookOpen}
+                  >
+                    {subjects.map((subject) => (
+                      <SelectItem key={subject.id} value={subject.id}>
+                        {subject.name}
+                      </SelectItem>
+                    ))}
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <Text>Current Status: <Badge color={currentStatus === 'OUT' ? 'red' : currentStatus === 'BREAK' ? 'yellow' : 'green'}>{currentStatus}</Badge></Text>
+                {lastClockIn && (
+                  <Text>Time Elapsed: {timeElapsed}</Text>
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="grid grid-cols-2 gap-4">
+              <Flex className="gap-3">
                 {currentStatus === 'OUT' && (
                   <Button
-                    size="lg"
                     variant="primary"
+                    color="green"
                     onClick={() => handleClocking('IN')}
                     disabled={isLoading}
-                    className="col-span-2 bg-emerald-500 hover:bg-emerald-600 rounded-2xl"
+                    icon={Clock}
+                    className="flex-1"
                   >
-                    <Clock className="w-4 h-4 mr-2" />
-                    Start Working
+                    Clock In
                   </Button>
                 )}
-
                 {currentStatus === 'IN' && (
                   <>
                     <Button
-                      size="lg"
                       variant="secondary"
+                      color="yellow"
                       onClick={() => handleClocking('BREAK')}
                       disabled={isLoading}
-                      className="bg-amber-500 hover:bg-amber-600 text-white rounded-2xl"
+                      icon={Coffee}
+                      className="flex-1"
                     >
-                      <Coffee className="w-4 h-4 mr-2" />
                       Take Break
                     </Button>
                     <Button
-                      size="lg"
                       variant="secondary"
+                      color="red"
                       onClick={() => handleClocking('OUT')}
                       disabled={isLoading}
-                      className="bg-rose-500 hover:bg-rose-600 text-white rounded-2xl"
+                      icon={LogOut}
+                      className="flex-1"
                     >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Finish Day
+                      Clock Out
                     </Button>
                   </>
                 )}
-
                 {currentStatus === 'BREAK' && (
                   <Button
-                    size="lg"
                     variant="primary"
+                    color="green"
                     onClick={() => handleClocking('IN')}
                     disabled={isLoading}
-                    className="col-span-2 bg-emerald-500 hover:bg-emerald-600 rounded-2xl"
+                    icon={Clock}
+                    className="flex-1"
                   >
-                    <Timer className="w-4 h-4 mr-2" />
                     Resume Work
                   </Button>
                 )}
-              </div>
-
-              {/* Quick Stats */}
-              <Card className="bg-gray-50 rounded-2xl">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Text>Today's Hours</Text>
-                    <Metric className="text-lg">
-                      {clockingHistory
-                        .filter(r => r.totalHours && new Date(r.timestamp).toDateString() === new Date().toDateString())
-                        .reduce((acc, curr) => acc + (curr.totalHours || 0), 0)
-                        .toFixed(1)}h
-                    </Metric>
-                  </div>
-                  <div>
-                    <Text>Week Total</Text>
-                    <Metric className="text-lg">
-                      {clockingHistory
-                        .filter(r => r.totalHours && new Date(r.timestamp) > new Date(Date.now() - 7 * 24 * 60 * 60 * 1000))
-                        .reduce((acc, curr) => acc + (curr.totalHours || 0), 0)
-                        .toFixed(1)}h
-                    </Metric>
-                  </div>
-                </div>
-              </Card>
+              </Flex>
             </div>
           </Card>
         </div>

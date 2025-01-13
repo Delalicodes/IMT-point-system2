@@ -4,18 +4,15 @@ import prisma from '@/lib/prisma';
 export async function GET() {
   try {
     const courses = await prisma.course.findMany({
+      include: {
+        subjects: true
+      },
       orderBy: {
         createdAt: 'desc'
       }
     });
 
-    // Parse subjects from JSON string to array for each course
-    const formattedCourses = courses.map(course => ({
-      ...course,
-      subjects: JSON.parse(course.subjects)
-    }));
-
-    return NextResponse.json(formattedCourses);
+    return NextResponse.json(courses);
   } catch (error) {
     console.error('Error fetching courses:', error);
     return NextResponse.json(
@@ -47,18 +44,19 @@ export async function POST(request: Request) {
     const course = await prisma.course.create({
       data: {
         name,
-        description: description || null, // Ensure description is null if not provided
-        subjects: Array.isArray(subjects) ? JSON.stringify(subjects) : "[]"
+        description: description || null,
+        subjects: {
+          create: Array.isArray(subjects) ? subjects.map(subject => ({
+            name: subject
+          })) : []
+        }
+      },
+      include: {
+        subjects: true
       }
     });
 
-    // Log the created course for debugging
-    console.log('Created course:', course);
-
-    return NextResponse.json({
-      ...course,
-      subjects: JSON.parse(course.subjects)
-    });
+    return NextResponse.json(course);
   } catch (error: any) {
     // Log the detailed error
     console.error('Detailed error creating course:', error);
@@ -95,17 +93,19 @@ export async function PUT(request: Request) {
       data: {
         name,
         description: description || null,
-        subjects: Array.isArray(subjects) ? JSON.stringify(subjects) : "[]"
+        subjects: {
+          deleteMany: {},  // Delete all existing subjects
+          create: Array.isArray(subjects) ? subjects.map(subject => ({
+            name: subject
+          })) : []
+        }
+      },
+      include: {
+        subjects: true
       }
     });
 
-    // Log the updated course for debugging
-    console.log('Updated course:', course);
-
-    return NextResponse.json({
-      ...course,
-      subjects: JSON.parse(course.subjects)
-    });
+    return NextResponse.json(course);
   } catch (error: any) {
     // Log the detailed error
     console.error('Detailed error updating course:', error);

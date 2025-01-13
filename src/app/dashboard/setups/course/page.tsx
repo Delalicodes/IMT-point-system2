@@ -1,18 +1,28 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { toast } from 'react-hot-toast';
 import { Plus, Edit2, Trash2, Search, X } from 'lucide-react';
 
+interface Course {
+  id: string;
+  name: string;
+  description: string;
+  subjects: { id: string; name: string }[];
+}
+
 export default function CoursePage() {
-  const [courses, setCourses] = useState<any[]>([]);
+  const router = useRouter();
+  const [courses, setCourses] = useState<Course[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
-  const [editingCourse, setEditingCourse] = useState<any>(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    subjects: [''] // Start with one empty subject field
+    subjects: ['']
   });
 
   useEffect(() => {
@@ -22,19 +32,36 @@ export default function CoursePage() {
   const fetchCourses = async () => {
     try {
       const response = await fetch('/api/courses');
-      if (!response.ok) {
-        throw new Error('Failed to fetch courses');
-      }
+      if (!response.ok) throw new Error('Failed to fetch courses');
       const data = await response.json();
-      setCourses(Array.isArray(data) ? data : []);
+      setCourses(data);
     } catch (error) {
       console.error('Error fetching courses:', error);
       toast.error('Failed to fetch courses');
-      setCourses([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleDelete = async (id: string) => {
+    if (!window.confirm('Are you sure you want to delete this course?')) return;
+
+    try {
+      const response = await fetch(`/api/courses?id=${id}`, {
+        method: 'DELETE',
+      });
+
+      if (!response.ok) throw new Error('Failed to delete course');
+
+      toast.success('Course deleted successfully');
+      fetchCourses();
+    } catch (error) {
+      console.error('Error deleting course:', error);
+      toast.error('Failed to delete course');
+    }
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -51,14 +78,14 @@ export default function CoursePage() {
     }));
   };
 
-  const addSubjectField = () => {
+  const handleAddSubject = () => {
     setFormData(prev => ({
       ...prev,
       subjects: [...prev.subjects, '']
     }));
   };
 
-  const removeSubjectField = (index: number) => {
+  const handleRemoveSubject = (index: number) => {
     if (formData.subjects.length > 1) {
       const newSubjects = formData.subjects.filter((_, i) => i !== index);
       setFormData(prev => ({
@@ -68,78 +95,67 @@ export default function CoursePage() {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    // Filter out empty subjects
-    const filteredSubjects = formData.subjects.filter(subject => subject.trim() !== '');
-    
-    try {
-      const response = await fetch('/api/courses', {
-        method: editingCourse ? 'PUT' : 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ...formData,
-          subjects: filteredSubjects,
-          id: editingCourse?.id
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save course');
-      }
-
-      toast.success(editingCourse ? 'Course updated successfully' : 'Course created successfully');
-      setFormData({
-        name: '',
-        description: '',
-        subjects: ['']
-      });
-      setShowModal(false);
-      setEditingCourse(null);
-      fetchCourses();
-    } catch (error: any) {
-      toast.error(error.message);
-    }
-  };
-
-  const handleEdit = (course: any) => {
-    setEditingCourse(course);
+  const handleEditClick = (course: Course) => {
+    setSelectedCourse(course);
     setFormData({
       name: course.name,
       description: course.description || '',
-      subjects: course.subjects.length > 0 ? course.subjects : ['']
+      subjects: course.subjects.map(s => s.name)
     });
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!window.confirm('Are you sure you want to delete this course?')) {
-      return;
-    }
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      description: '',
+      subjects: ['']
+    });
+    setSelectedCourse(null);
+    setShowModal(false);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
 
     try {
-      const response = await fetch(`/api/courses/${id}`, {
-        method: 'DELETE',
+      const filteredSubjects = formData.subjects.filter(subject => subject.trim() !== '');
+      
+      const response = await fetch('/api/courses', {
+        method: selectedCourse ? 'PUT' : 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...(selectedCourse && { id: selectedCourse.id }),
+          name: formData.name,
+          description: formData.description,
+          subjects: filteredSubjects,
+        }),
       });
 
-      if (!response.ok) {
-        throw new Error('Failed to delete course');
-      }
+      if (!response.ok) throw new Error(`Failed to ${selectedCourse ? 'update' : 'create'} course`);
 
-      toast.success('Course deleted successfully');
+      toast.success(`Course ${selectedCourse ? 'updated' : 'created'} successfully`);
+      resetForm();
       fetchCourses();
-    } catch (error: any) {
-      toast.error(error.message);
+    } catch (error) {
+      console.error(`Error ${selectedCourse ? 'updating' : 'creating'} course:`, error);
+      toast.error(`Failed to ${selectedCourse ? 'update' : 'create'} course`);
     }
   };
 
   const filteredCourses = courses.filter(course =>
     course.name.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -159,12 +175,7 @@ export default function CoursePage() {
           </div>
           <button
             onClick={() => {
-              setEditingCourse(null);
-              setFormData({
-                name: '',
-                description: '',
-                subjects: ['']
-              });
+              resetForm();
               setShowModal(true);
             }}
             className="w-full sm:w-auto bg-blue-500 text-white px-4 py-2 rounded-lg flex items-center justify-center space-x-2 hover:bg-blue-600"
@@ -176,41 +187,41 @@ export default function CoursePage() {
       </div>
 
       {/* Course Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCourses.map(course => (
-          <div key={course.id} className="bg-white p-4 sm:p-6 rounded-lg shadow-md">
+          <div key={course.id} className="bg-white p-4 rounded-lg shadow">
             <div className="flex justify-between items-start mb-4">
               <div className="flex-1 mr-4">
-                <h3 className="font-semibold text-lg break-words">{course.name}</h3>
+                <h3 className="font-semibold text-lg">{course.name}</h3>
               </div>
-              <div className="flex space-x-2 flex-shrink-0">
+              <div className="flex space-x-2">
                 <button
-                  onClick={() => handleEdit(course)}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  onClick={() => handleEditClick(course)}
+                  className="p-1 hover:bg-gray-100 rounded"
                 >
                   <Edit2 className="h-4 w-4 text-blue-500" />
                 </button>
                 <button
                   onClick={() => handleDelete(course.id)}
-                  className="p-1 hover:bg-gray-100 rounded transition-colors"
+                  className="p-1 hover:bg-gray-100 rounded"
                 >
                   <Trash2 className="h-4 w-4 text-red-500" />
                 </button>
               </div>
             </div>
             {course.description && (
-              <p className="text-sm text-gray-600 mb-4 break-words">{course.description}</p>
+              <p className="text-sm text-gray-600 mb-4">{course.description}</p>
             )}
             {course.subjects.length > 0 && (
               <div>
                 <p className="text-sm font-medium text-gray-700 mb-2">Subjects:</p>
                 <div className="flex flex-wrap gap-2">
-                  {course.subjects.map((subject: string, index: number) => (
+                  {course.subjects.map((subject) => (
                     <span
-                      key={index}
-                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded break-words"
+                      key={subject.id}
+                      className="text-xs bg-gray-100 text-gray-700 px-2 py-1 rounded"
                     >
-                      {subject}
+                      {subject.name}
                     </span>
                   ))}
                 </div>
@@ -219,102 +230,113 @@ export default function CoursePage() {
           </div>
         ))}
         {filteredCourses.length === 0 && (
-          <p className="text-center text-gray-500 col-span-1 sm:col-span-2 lg:col-span-3">
-            No courses found
-          </p>
+          <div className="col-span-full text-center py-12">
+            <p className="text-gray-500">No courses found</p>
+            <button
+              onClick={() => {
+                resetForm();
+                setShowModal(true);
+              }}
+              className="mt-4 text-blue-600 hover:text-blue-700"
+            >
+              Add your first course
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Course Modal */}
+      {/* Course Modal (Add/Edit) */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white p-6 rounded-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
-            <div className="flex justify-between items-center mb-4">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-md">
+            <div className="flex justify-between items-center p-6 border-b">
               <h2 className="text-xl font-semibold">
-                {editingCourse ? 'Edit Course' : 'Add New Course'}
+                {selectedCourse ? 'Edit Course' : 'Add New Course'}
               </h2>
               <button
-                onClick={() => setShowModal(false)}
-                className="text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={resetForm}
+                className="text-gray-500 hover:text-gray-700"
               >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  name="name"
-                  value={formData.name}
-                  onChange={handleChange}
-                  required
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter course name"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Description
-                </label>
-                <textarea
-                  name="description"
-                  value={formData.description}
-                  onChange={handleChange}
-                  className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter course description"
-                  rows={3}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Subjects
-                </label>
-                <div className="space-y-2">
-                  {formData.subjects.map((subject, index) => (
-                    <div key={index} className="flex gap-2">
-                      <input
-                        type="text"
-                        value={subject}
-                        onChange={(e) => handleSubjectChange(index, e.target.value)}
-                        className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        placeholder="Enter subject name"
-                      />
-                      {formData.subjects.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeSubjectField(index)}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                        >
-                          <X className="h-5 w-5" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
+            <form onSubmit={handleSubmit} className="p-6">
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Course Name
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
                 </div>
-                <button
-                  type="button"
-                  onClick={addSubjectField}
-                  className="mt-2 text-blue-500 text-sm hover:text-blue-600 transition-colors"
-                >
-                  + Add another subject
-                </button>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Description
+                  </label>
+                  <textarea
+                    name="description"
+                    value={formData.description}
+                    onChange={handleInputChange}
+                    rows={3}
+                    className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                <div>
+                  <div className="flex justify-between items-center mb-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Subjects
+                    </label>
+                    <button
+                      type="button"
+                      onClick={handleAddSubject}
+                      className="text-sm text-blue-600 hover:text-blue-700"
+                    >
+                      + Add Subject
+                    </button>
+                  </div>
+                  <div className="space-y-2">
+                    {formData.subjects.map((subject, index) => (
+                      <div key={index} className="flex gap-2">
+                        <input
+                          type="text"
+                          value={subject}
+                          onChange={(e) => handleSubjectChange(index, e.target.value)}
+                          className="flex-1 px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                          placeholder="Enter subject name"
+                        />
+                        {formData.subjects.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveSubject(index)}
+                            className="text-red-500 hover:text-red-700 px-2"
+                          >
+                            <X className="h-5 w-5" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
               </div>
-              <div className="flex justify-end space-x-4 mt-6">
+              <div className="mt-6 flex justify-end gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded-lg hover:bg-gray-50 transition-colors"
+                  onClick={resetForm}
+                  className="px-4 py-2 text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                  className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
                 >
-                  {editingCourse ? 'Update Course' : 'Create Course'}
+                  {selectedCourse ? 'Update Course' : 'Create Course'}
                 </button>
               </div>
             </form>

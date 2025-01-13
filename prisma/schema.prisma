@@ -34,10 +34,22 @@ model Course {
   id          String   @id @default(uuid())
   name        String
   description String?
-  subjects    String   @default("[]")
+  subjects    Subject[]
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   students    User[]
+}
+
+model Subject {
+  id             String           @id @default(uuid())
+  name           String
+  courseId       String
+  course         Course           @relation(fields: [courseId], references: [id])
+  clockingRecords ClockingRecord[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@index([courseId])
 }
 
 model Point {
@@ -51,14 +63,17 @@ model Point {
 }
 
 model ClockingRecord {
-  id         String   @id @default(cuid())
+  id         String    @id @default(cuid())
   userId     String
   type       String
-  timestamp  DateTime @default(now())
+  subjectId  String?
+  timestamp  DateTime  @default(now())
   totalHours Float?
-  user       User     @relation(fields: [userId], references: [id])
+  user       User      @relation(fields: [userId], references: [id])
+  subject    Subject?  @relation(fields: [subjectId], references: [id])
 
   @@index([userId])
+  @@index([subjectId])
   @@map("clocking_records")
 }
 
