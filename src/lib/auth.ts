@@ -6,6 +6,7 @@ import { compare } from "bcrypt";
 export const authOptions: NextAuthOptions = {
   session: {
     strategy: "jwt",
+    maxAge: 30 * 24 * 60 * 60, // 30 days
   },
   providers: [
     CredentialsProvider({
@@ -27,15 +28,14 @@ export const authOptions: NextAuthOptions = {
           where: {
             username: credentials.username,
           },
-          select: {
-            id: true,
-            username: true,
-            password: true,
-            email: true,
-            firstName: true,
-            lastName: true,
-            role: true,
-            imageUrl: true,
+          include: {
+            course: {
+              select: {
+                id: true,
+                name: true,
+                code: true,
+              },
+            },
           },
         });
 
@@ -54,12 +54,13 @@ export const authOptions: NextAuthOptions = {
 
         return {
           id: user.id,
-          email: user.email,
           username: user.username,
+          email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           role: user.role,
           imageUrl: user.imageUrl,
+          course: user.course,
           name: `${user.firstName} ${user.lastName}`,
         };
       },
@@ -67,35 +68,26 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async session({ session, token }) {
-      console.log('Session callback - token:', token);
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-          username: token.username,
-          role: token.role,
-          firstName: token.firstName,
-          lastName: token.lastName,
-          imageUrl: token.imageUrl,
-          name: token.name,
-        },
-      };
+      if (token) {
+        session.user.id = token.id as string;
+        session.user.username = token.username as string;
+        session.user.role = token.role as string;
+        session.user.firstName = token.firstName as string;
+        session.user.lastName = token.lastName as string;
+        session.user.imageUrl = token.imageUrl as string;
+        session.user.course = token.course as any;
+      }
+      return session;
     },
     async jwt({ token, user }) {
-      console.log('JWT callback - user:', user);
       if (user) {
-        const u = user as unknown as any;
-        return {
-          ...token,
-          id: u.id,
-          username: u.username,
-          role: u.role,
-          firstName: u.firstName,
-          lastName: u.lastName,
-          imageUrl: u.imageUrl,
-          name: u.name,
-        };
+        token.id = user.id;
+        token.username = user.username;
+        token.role = user.role;
+        token.firstName = user.firstName;
+        token.lastName = user.lastName;
+        token.imageUrl = user.imageUrl;
+        token.course = user.course;
       }
       return token;
     },
@@ -103,5 +95,24 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/login",
   },
-  debug: true, // Enable debug mode
+  debug: process.env.NODE_ENV === 'development',
 };
+
+declare module "next-auth" {
+  interface Session {
+    user: {
+      id: string;
+      username: string;
+      email: string;
+      firstName: string;
+      lastName: string;
+      role: string;
+      imageUrl: string;
+      course?: {
+        id: string;
+        name: string;
+        code: string;
+      } | null;
+    };
+  }
+}

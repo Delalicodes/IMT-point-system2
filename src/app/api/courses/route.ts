@@ -5,13 +5,12 @@ export async function GET() {
   try {
     const courses = await prisma.course.findMany({
       include: {
-        subjects: true
-      },
-      orderBy: {
-        createdAt: 'desc'
+        subjects: true,
+        students: true
       }
     });
 
+    console.log('Fetched courses:', JSON.stringify(courses, null, 2));
     return NextResponse.json(courses);
   } catch (error) {
     console.error('Error fetching courses:', error);

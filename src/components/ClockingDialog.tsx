@@ -12,7 +12,7 @@ import {
   Select,
   SelectItem,
 } from '@tremor/react';
-import { Clock, Coffee, LogOut, History, Timer, Calendar, BookOpen } from 'lucide-react';
+import { Clock, Coffee, LogOut, History, Timer, Calendar, BookOpen, X } from 'lucide-react';
 import {
   format,
   formatDistanceToNow,
@@ -23,6 +23,9 @@ import {
 } from 'date-fns';
 import { DayPicker, SelectRangeEventHandler } from 'react-day-picker';
 import 'react-day-picker/dist/style.css';
+import { motion, AnimatePresence } from 'framer-motion';
+import CustomAlert from './CustomAlert';
+import { useSession } from 'next-auth/react';
 
 interface ClockingRecord {
   id: string;
@@ -36,6 +39,7 @@ interface ClockingRecord {
 interface Subject {
   id: string;
   name: string;
+  code: string;
   courseId: string;
 }
 
@@ -57,11 +61,25 @@ export default function ClockingDialog() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [selectedSubject, setSelectedSubject] = useState<string>('');
   const [userCourse, setUserCourse] = useState<{ id: string; name: string } | null>(null);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [showSubjectModal, setShowSubjectModal] = useState(false);
+
+  const { data: session } = useSession();
+
+  useEffect(() => {
+    console.log('Current session:', session);
+  }, [session]);
 
   useEffect(() => {
     fetchClockingHistory();
-    fetchUserCourseAndSubjects();
   }, []);
+
+  useEffect(() => {
+    if (showSubjectModal) {
+      fetchUserSubjects();
+    }
+  }, [showSubjectModal]);
 
   useEffect(() => {
     if (currentStatus !== 'OUT') {
@@ -109,29 +127,105 @@ export default function ClockingDialog() {
     }
   };
 
-  const fetchUserCourseAndSubjects = async () => {
+  const assignCourse = async (courseId: string) => {
     try {
-      // Fetch user's course
-      const courseResponse = await fetch('/api/user/course');
-      if (!courseResponse.ok) throw new Error('Failed to fetch user course');
-      const courseData = await courseResponse.json();
-      setUserCourse(courseData.course);
+      const response = await fetch('/api/user/assign-course', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ courseId }),
+        credentials: 'include'
+      });
 
-      if (courseData.course?.id) {
-        // Fetch subjects for the course
-        const subjectsResponse = await fetch(`/api/courses/${courseData.course.id}/subjects`);
-        if (!subjectsResponse.ok) throw new Error('Failed to fetch subjects');
-        const subjectsData = await subjectsResponse.json();
-        setSubjects(subjectsData);
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to assign course');
+      }
+
+      const data = await response.json();
+      console.log('Course assigned:', data);
+      return data.course;
+    } catch (error) {
+      console.error('Error assigning course:', error);
+      throw error;
+    }
+  };
+
+  const fetchUserSubjects = async () => {
+    try {
+      setIsLoading(true);
+      setShowAlert(false);
+      
+      // Step 1: Get all courses first
+      console.log('Fetching courses...');
+      const coursesResponse = await fetch('/api/courses');
+      const courses = await coursesResponse.json();
+      
+      if (!coursesResponse.ok) {
+        throw new Error('Failed to fetch courses');
+      }
+      
+      console.log('Available courses:', courses);
+      
+      if (!courses || courses.length === 0) {
+        throw new Error('No courses available in the system');
+      }
+      
+      // Step 2: Try to get user's current course
+      console.log('Fetching user course...');
+      const userCourseResponse = await fetch('/api/user/course');
+      
+      if (userCourseResponse.status === 404) {
+        // User has no course, assign the first available course
+        const firstCourse = courses[0];
+        console.log('Assigning first course:', firstCourse);
+        
+        const assignResponse = await fetch('/api/user/assign-course', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ courseId: firstCourse.id })
+        });
+        
+        if (!assignResponse.ok) {
+          throw new Error('Failed to assign course');
+        }
+        
+        const { course } = await assignResponse.json();
+        console.log('Course assigned:', course);
+        
+        if (!course.subjects || course.subjects.length === 0) {
+          throw new Error('No subjects available in the assigned course');
+        }
+        
+        setSubjects(course.subjects);
+      } else if (userCourseResponse.ok) {
+        const { course } = await userCourseResponse.json();
+        console.log('User course:', course);
+        
+        if (!course.subjects || course.subjects.length === 0) {
+          throw new Error('No subjects available in your course');
+        }
+        
+        setSubjects(course.subjects);
+      } else {
+        const error = await userCourseResponse.json();
+        throw new Error(error.error || 'Failed to fetch user course');
       }
     } catch (error) {
-      console.error('Error fetching course and subjects:', error);
+      console.error('Error:', error);
+      setAlertMessage(error instanceof Error ? error.message : 'Failed to load subjects');
+      setShowAlert(true);
+      setSubjects([]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleClocking = async (type: 'IN' | 'BREAK' | 'OUT') => {
-    if (type === 'IN' && !selectedSubject) {
-      alert('Please select a subject before clocking in');
+    if (!selectedSubject && type === 'IN') {
+      setAlertMessage('Please select a subject before clocking in');
+      setShowAlert(true);
       return;
     }
 
@@ -169,9 +263,25 @@ export default function ClockingDialog() {
       setShowClockingDialog(false);
     } catch (error) {
       console.error('Error recording clocking:', error);
+      setAlertMessage('Failed to record clocking. Please try again.');
+      setShowAlert(true);
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleSubjectSubmit = async () => {
+    if (!selectedSubject) {
+      setAlertMessage('Please select a subject before clocking in');
+      setShowAlert(true);
+      return;
+    }
+    await handleClocking('IN');
+    setShowSubjectModal(false);
+  };
+
+  const handleClockInClick = () => {
+    setShowSubjectModal(true);
   };
 
   const getStatusColor = (status: 'IN' | 'OUT' | 'BREAK') => {
@@ -250,98 +360,182 @@ export default function ClockingDialog() {
       </Button>
 
       {showClockingDialog && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-lg">
-            <div className="space-y-6">
-              <div className="flex justify-between items-center">
-                <Title>Clocking Management</Title>
-                <Button
-                  variant="light"
-                  color="gray"
-                  onClick={() => setShowClockingDialog(false)}
-                >
-                  ✕
-                </Button>
-              </div>
-
-              {currentStatus === 'OUT' && (
-                <div className="space-y-4">
-                  <Text>Select the subject you'll be working on:</Text>
-                  <Select
-                    value={selectedSubject}
-                    onValueChange={setSelectedSubject}
-                    placeholder="Choose a subject..."
-                    icon={BookOpen}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="w-full max-w-lg"
+          >
+            <Card className="bg-white shadow-2xl border-0 rounded-2xl overflow-hidden">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                  <Title className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Clocking Management
+                  </Title>
+                  <button
+                    onClick={() => setShowClockingDialog(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    {subjects.map((subject) => (
-                      <SelectItem key={subject.id} value={subject.id}>
-                        {subject.name}
-                      </SelectItem>
-                    ))}
-                  </Select>
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
                 </div>
-              )}
 
-              <div className="space-y-4">
-                <Text>Current Status: <Badge color={currentStatus === 'OUT' ? 'red' : currentStatus === 'BREAK' ? 'yellow' : 'green'}>{currentStatus}</Badge></Text>
-                {lastClockIn && (
-                  <Text>Time Elapsed: {timeElapsed}</Text>
-                )}
+                <div className="space-y-4 bg-gray-50 p-4 rounded-xl">
+                  <div className="flex items-center justify-between">
+                    <Text className="text-gray-600">Current Status:</Text>
+                    <Badge 
+                      color={currentStatus === 'OUT' ? 'red' : currentStatus === 'BREAK' ? 'yellow' : 'green'}
+                      className="px-3 py-1.5 text-sm font-medium rounded-full"
+                    >
+                      {currentStatus}
+                    </Badge>
+                  </div>
+                  {lastClockIn && (
+                    <div className="flex items-center justify-between">
+                      <Text className="text-gray-600">Time Elapsed:</Text>
+                      <Text className="font-semibold text-indigo-600">{timeElapsed}</Text>
+                    </div>
+                  )}
+                </div>
+
+                <Flex className="gap-3 pt-4 border-t border-gray-100">
+                  {currentStatus === 'OUT' && (
+                    <Button
+                      onClick={handleClockInClick}
+                      disabled={isLoading}
+                      icon={Clock}
+                      className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md rounded-xl"
+                    >
+                      Clock In
+                    </Button>
+                  )}
+                  {currentStatus === 'IN' && (
+                    <>
+                      <Button
+                        onClick={() => handleClocking('BREAK')}
+                        disabled={isLoading}
+                        icon={Coffee}
+                        className="flex-1 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 text-white shadow-md rounded-xl"
+                      >
+                        Take Break
+                      </Button>
+                      <Button
+                        onClick={() => handleClocking('OUT')}
+                        disabled={isLoading}
+                        icon={LogOut}
+                        className="flex-1 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-600 hover:to-red-700 text-white shadow-md rounded-xl"
+                      >
+                        Clock Out
+                      </Button>
+                    </>
+                  )}
+                  {currentStatus === 'BREAK' && (
+                    <Button
+                      onClick={() => handleClocking('IN')}
+                      disabled={isLoading}
+                      icon={Timer}
+                      className="flex-1 bg-gradient-to-r from-green-500 to-emerald-600 hover:from-green-600 hover:to-emerald-700 text-white shadow-md rounded-xl"
+                    >
+                      Resume Work
+                    </Button>
+                  )}
+                </Flex>
               </div>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
 
-              <Flex className="gap-3">
-                {currentStatus === 'OUT' && (
-                  <Button
-                    variant="primary"
-                    color="green"
-                    onClick={() => handleClocking('IN')}
-                    disabled={isLoading}
-                    icon={Clock}
-                    className="flex-1"
+      {showSubjectModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+        >
+          <motion.div
+            initial={{ scale: 0.95, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.95, opacity: 0 }}
+            className="w-full max-w-md"
+          >
+            <Card className="bg-white shadow-2xl border-0 rounded-2xl overflow-hidden">
+              <div className="space-y-6">
+                <div className="flex justify-between items-center border-b border-gray-100 pb-4">
+                  <Title className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+                    Select Subject
+                  </Title>
+                  <button
+                    onClick={() => setShowSubjectModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-full transition-colors"
                   >
-                    Clock In
-                  </Button>
-                )}
-                {currentStatus === 'IN' && (
-                  <>
-                    <Button
-                      variant="secondary"
-                      color="yellow"
-                      onClick={() => handleClocking('BREAK')}
-                      disabled={isLoading}
-                      icon={Coffee}
-                      className="flex-1"
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+
+                <div className="space-y-4">
+                  <Text className="text-gray-600 font-medium">Which subject will you be working on?</Text>
+                  <div className="relative">
+                    <Select
+                      value={selectedSubject}
+                      onValueChange={setSelectedSubject}
+                      placeholder="Choose a subject..."
+                      className="w-full bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
-                      Take Break
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      color="red"
-                      onClick={() => handleClocking('OUT')}
-                      disabled={isLoading}
-                      icon={LogOut}
-                      className="flex-1"
-                    >
-                      Clock Out
-                    </Button>
-                  </>
-                )}
-                {currentStatus === 'BREAK' && (
+                      {subjects.length === 0 ? (
+                        <SelectItem value="loading" disabled>
+                          No subjects available
+                        </SelectItem>
+                      ) : (
+                        subjects.map((subject) => (
+                          <SelectItem 
+                            key={subject.id} 
+                            value={subject.id}
+                            className="py-2.5 px-3 hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            <div className="flex flex-col">
+                              <span className="font-medium text-gray-900">{subject.name}</span>
+                              <span className="text-sm text-gray-500">{subject.code}</span>
+                            </div>
+                          </SelectItem>
+                        ))
+                      )}
+                    </Select>
+                  </div>
+                  {subjects.length === 0 && (
+                    <div className="text-sm text-gray-500 flex items-center space-x-2 mt-2">
+                      <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"></span>
+                      <span>Loading subjects...</span>
+                    </div>
+                  )}
+                </div>
+
+                <Flex className="gap-3 pt-4 border-t border-gray-100">
                   <Button
-                    variant="primary"
-                    color="green"
-                    onClick={() => handleClocking('IN')}
-                    disabled={isLoading}
-                    icon={Clock}
-                    className="flex-1"
+                    onClick={() => setShowSubjectModal(false)}
+                    className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 shadow-sm rounded-xl transition-colors duration-200"
                   >
-                    Resume Work
+                    Cancel
                   </Button>
-                )}
-              </Flex>
-            </div>
-          </Card>
-        </div>
+                  <Button
+                    onClick={handleSubjectSubmit}
+                    disabled={isLoading || !selectedSubject}
+                    icon={Clock}
+                    className="flex-1 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-md rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+                  >
+                    Confirm
+                  </Button>
+                </Flex>
+              </div>
+            </Card>
+          </motion.div>
+        </motion.div>
       )}
 
       {showHistoryDialog && (
@@ -478,6 +672,12 @@ export default function ClockingDialog() {
           </Card>
         </div>
       )}
+
+      <CustomAlert
+        message={alertMessage}
+        isOpen={showAlert}
+        onClose={() => setShowAlert(false)}
+      />
     </div>
   );
 }
