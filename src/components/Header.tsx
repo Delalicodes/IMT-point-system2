@@ -8,14 +8,19 @@ import {
   Sun, 
   User,
   ChevronDown,
-  Settings 
+  Settings,
+  Menu
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
 
-export default function Header() {
+interface HeaderProps {
+  onMenuClick: () => void;
+}
+
+export default function Header({ onMenuClick }: HeaderProps) {
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
@@ -104,38 +109,33 @@ export default function Header() {
   }, []);
 
   return (
-    <header className="sticky top-0 z-50 h-16 px-6 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex items-center justify-end">
+    <header className="sticky top-0 z-50 h-16 px-4 lg:px-6 bg-[#0A1E54] border-b border-gray-200 flex items-center justify-between">
+      {/* Left side - Menu button */}
+      <button
+        onClick={onMenuClick}
+        className="lg:hidden p-2 rounded-md text-white hover:bg-white/10"
+      >
+        <Menu className="h-6 w-6" />
+      </button>
+
+      {/* Right side - user menu and theme toggle */}
       <div className="flex items-center space-x-4">
-        {/* Theme Toggle */}
         <button
           onClick={toggleTheme}
-          className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          className="p-2 rounded-lg hover:bg-white/10 transition-colors"
           aria-label="Toggle theme"
         >
           {isDarkMode ? (
-            <Sun className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <Sun className="h-5 w-5 text-white" />
           ) : (
-            <Moon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+            <Moon className="h-5 w-5 text-white" />
           )}
         </button>
 
-        {/* Notifications */}
         <div className="relative">
           <button
-            className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
-            aria-label="View notifications"
-          >
-            <Bell className="w-5 h-5 text-gray-600 dark:text-gray-300" />
-            <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
-          </button>
-        </div>
-
-        {/* Profile Dropdown */}
-        <div className="relative">
-          <button
-            id="profile-button"
             onClick={() => setIsProfileOpen(!isProfileOpen)}
-            className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+            className="flex items-center space-x-2 p-2 rounded-lg hover:bg-white/10 transition-colors"
           >
             <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center overflow-hidden">
               {profileImage ? (
@@ -145,42 +145,28 @@ export default function Header() {
                   className="w-full h-full object-cover"
                 />
               ) : (
-                <User className="w-5 h-5 text-white" />
+                <User className="h-5 w-5 text-white" />
               )}
             </div>
-            <span className="text-sm font-medium text-gray-700 dark:text-gray-200">
+            <span className="text-sm font-medium text-white hidden md:block">
               {user?.name || 'Loading...'}
             </span>
-            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
+            <ChevronDown className="h-4 w-4 text-white hidden md:block" />
           </button>
 
           {isProfileOpen && (
-            <div id="profile-dropdown" className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg py-1 border border-gray-200 dark:border-gray-700 z-50">
-              <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
-                <p className="text-sm font-medium text-gray-900 dark:text-white">
-                  {user?.name || 'Loading...'}
-                </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {user?.email}
-                </p>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  {user?.role || 'student'}
-                </p>
-              </div>
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg py-1 z-50">
               <Link
                 href="/dashboard/profile"
-                onClick={() => setIsProfileOpen(false)}
-                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
-                <Settings className="w-4 h-4" />
-                <span>Profile Settings</span>
+                Profile Settings
               </Link>
               <button
                 onClick={handleLogout}
-                className="w-full flex items-center space-x-3 px-4 py-2 text-sm text-red-600 hover:bg-gray-100 dark:hover:bg-gray-700"
+                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
               >
-                <LogOut className="w-4 h-4" />
-                <span>Logout</span>
+                Sign out
               </button>
             </div>
           )}
