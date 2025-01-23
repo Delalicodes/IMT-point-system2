@@ -18,6 +18,7 @@ model User {
   role            String           @default("STUDENT")
   status          String           @default("ACTIVE")
   courseId        String?
+  supervisorId    String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
   imageUrl        String?          @default("/images/default-avatar.png")
@@ -26,8 +27,11 @@ model User {
   points          Point[]
   course          Course?          @relation(fields: [courseId], references: [id])
   clockingRecords ClockingRecord[]
+  supervisor      User?            @relation("SupervisorToStudent", fields: [supervisorId], references: [id])
+  students        User[]           @relation("SupervisorToStudent")
 
   @@index([role])
+  @@index([supervisorId])
 }
 
 model Course {

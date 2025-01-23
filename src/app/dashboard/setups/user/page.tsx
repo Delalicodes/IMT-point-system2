@@ -16,6 +16,7 @@ interface User {
   phoneNumber: string;
   role: string;
   courseId?: string;
+  supervisorId?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -34,6 +35,7 @@ interface FormData {
   email: string;
   phoneNumber: string;
   courseId?: string;
+  supervisorId?: string;
   password: string;
   confirmPassword: string;
   role: string;
@@ -60,6 +62,7 @@ function UserSetupContent() {
     email: '',
     phoneNumber: '',
     courseId: '',
+    supervisorId: '',
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
@@ -77,6 +80,8 @@ function UserSetupContent() {
   const [selectedRole, setSelectedRole] = useState('');
   const [courses, setCourses] = useState<Course[]>([]);
   const [isLoadingCourses, setIsLoadingCourses] = useState(true);
+  const [supervisors, setSupervisors] = useState<User[]>([]);
+  const [isLoadingSupervisors, setIsLoadingSupervisors] = useState(true);
   const { user } = useAuth();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -101,6 +106,7 @@ function UserSetupContent() {
           email: formData.email,
           phoneNumber: formData.phoneNumber,
           courseId: formData.courseId,
+          supervisorId: formData.supervisorId,
           password: formData.password,
           role: formData.role,
         }),
@@ -123,6 +129,7 @@ function UserSetupContent() {
         email: '',
         phoneNumber: '',
         courseId: '',
+        supervisorId: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
@@ -185,6 +192,30 @@ function UserSetupContent() {
       }
     };
     fetchCourses();
+  }, []);
+
+  // Fetch supervisors
+  useEffect(() => {
+    const fetchSupervisors = async () => {
+      setIsLoadingSupervisors(true);
+      try {
+        const response = await fetch('/api/supervisors');
+        if (!response.ok) {
+          throw new Error('Failed to fetch supervisors');
+        }
+        const data = await response.json();
+        console.log('Fetched supervisors:', data); // Debug log
+        const filteredSupervisors = data.filter((user: User) => user.role === 'SUPERVISOR');
+        console.log('Filtered supervisors:', filteredSupervisors); // Debug log
+        setSupervisors(filteredSupervisors);
+      } catch (error) {
+        console.error('Failed to fetch supervisors:', error);
+        toast.error('Failed to fetch supervisors');
+      } finally {
+        setIsLoadingSupervisors(false);
+      }
+    };
+    fetchSupervisors();
   }, []);
 
   // Delete selected users
@@ -308,6 +339,7 @@ function UserSetupContent() {
         email: '',
         phoneNumber: '',
         courseId: '',
+        supervisorId: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
@@ -328,6 +360,7 @@ function UserSetupContent() {
         email: editingUser.email,
         phoneNumber: editingUser.phoneNumber,
         courseId: editingUser.courseId || '',
+        supervisorId: editingUser.supervisorId || '',
         password: '',
         confirmPassword: '',
         role: editingUser.role,
@@ -580,6 +613,32 @@ function UserSetupContent() {
                               ))}
                             </select>
                           </div>
+                          <div className="space-y-1.5 md:col-span-2">
+                            <label htmlFor="supervisorId" className="block text-sm font-medium text-gray-700">
+                              Supervisor
+                            </label>
+                            <select
+                              id="supervisorId"
+                              name="supervisorId"
+                              value={formData.supervisorId}
+                              onChange={handleChange}
+                              className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                              required
+                              disabled={isLoadingSupervisors}
+                            >
+                              <option value="">
+                                {isLoadingSupervisors ? 'Loading supervisors...' : 'Select a supervisor'}
+                              </option>
+                              {!isLoadingSupervisors && supervisors.map((supervisor) => (
+                                <option 
+                                  key={supervisor.id} 
+                                  value={supervisor.id}
+                                >
+                                  {supervisor.firstName} {supervisor.lastName}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                         </div>
                       </div>
                     )}
@@ -776,6 +835,7 @@ function UserSetupContent() {
                                           email: user.email || '',
                                           phoneNumber: user.phoneNumber || '',
                                           courseId: user.courseId || '',
+                                          supervisorId: user.supervisorId || '',
                                           password: '',
                                           confirmPassword: '',
                                           role: user.role,
@@ -858,6 +918,7 @@ function UserSetupContent() {
                                   email: '',
                                   phoneNumber: '',
                                   courseId: '',
+                                  supervisorId: '',
                                   password: '',
                                   confirmPassword: '',
                                   role: 'STUDENT',
@@ -1009,6 +1070,30 @@ function UserSetupContent() {
                                   ))}
                                 </select>
                               </div>
+                              <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Supervisor</label>
+                                <select
+                                  id="supervisorId"
+                                  name="supervisorId"
+                                  value={formData.supervisorId}
+                                  onChange={handleChange}
+                                  className="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-lg shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                                  required
+                                  disabled={isLoadingSupervisors}
+                                >
+                                  <option value="">
+                                    {isLoadingSupervisors ? 'Loading supervisors...' : 'Select a supervisor'}
+                                  </option>
+                                  {!isLoadingSupervisors && supervisors.map((supervisor) => (
+                                    <option 
+                                      key={supervisor.id} 
+                                      value={supervisor.id}
+                                    >
+                                      {supervisor.firstName} {supervisor.lastName}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
                             </div>
                           )}
                         </form>
@@ -1028,6 +1113,7 @@ function UserSetupContent() {
                                   email: '',
                                   phoneNumber: '',
                                   courseId: '',
+                                  supervisorId: '',
                                   password: '',
                                   confirmPassword: '',
                                   role: 'STUDENT',

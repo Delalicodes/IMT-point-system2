@@ -6,7 +6,7 @@ const prisma = new PrismaClient();
 
 export async function POST(request: Request) {
   try {
-    const { firstName, lastName, username, password, role, email, phoneNumber, courseId } = await request.json();
+    const { firstName, lastName, username, password, role, email, phoneNumber, courseId, supervisorId } = await request.json();
 
     // Check if username already exists
     const existingUser = await prisma.user.findUnique({
@@ -18,6 +18,23 @@ export async function POST(request: Request) {
         { error: 'Username already exists' },
         { status: 400 }
       );
+    }
+
+    // If role is STUDENT and supervisorId is provided, verify supervisor exists
+    if (role === 'STUDENT' && supervisorId) {
+      const supervisor = await prisma.user.findUnique({
+        where: { 
+          id: supervisorId,
+          role: 'SUPERVISOR'
+        },
+      });
+
+      if (!supervisor) {
+        return NextResponse.json(
+          { error: 'Invalid supervisor selected' },
+          { status: 400 }
+        );
+      }
     }
 
     // Hash password
@@ -38,12 +55,22 @@ export async function POST(request: Request) {
         email,
         phoneNumber,
         courseId,
+        supervisorId, // Add supervisor relationship
       });
     }
 
     // Create new user
     const user = await prisma.user.create({
       data: userData,
+      include: {
+        supervisor: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+          }
+        }
+      }
     });
 
     // Remove password from response
