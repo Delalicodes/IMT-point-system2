@@ -27,12 +27,22 @@ interface ContextMenu {
   isVisible: boolean;
 }
 
+interface Task {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: 'PENDING' | 'COMPLETED';
+  userId: string;
+}
+
 export default function ChatPage() {
   const { data: session, status } = useSession();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-  const [reportContent, setReportContent] = useState('');
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenu>({ x: 0, y: 0, messageId: '', isVisible: false });
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const [editingMessage, setEditingMessage] = useState<Message | null>(null);
@@ -123,6 +133,12 @@ export default function ChatPage() {
   }, [status]);
 
   useEffect(() => {
+    if (isReportModalOpen && session?.user?.id) {
+      fetchTasks();
+    }
+  }, [isReportModalOpen, session?.user?.id]);
+
+  useEffect(() => {
     scrollToBottom();
   }, [messages]);
 
@@ -148,6 +164,69 @@ export default function ChatPage() {
       setMessages([]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchTasks = async () => {
+    try {
+      const response = await fetch('/api/tasks', {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+
+      const data = await response.json();
+      setTasks(data);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+    }
+  };
+
+  const handleTaskSelect = (taskId: string) => {
+    setSelectedTasks(prev => {
+      const isSelected = prev.includes(taskId);
+      if (isSelected) {
+        return prev.filter(id => id !== taskId);
+      } else {
+        return [...prev, taskId];
+      }
+    });
+  };
+
+  const handleSubmitReport = async () => {
+    if (selectedTasks.length === 0) return;
+
+    try {
+      // Create report message with selected tasks
+      const tasksList = tasks
+        .filter(task => selectedTasks.includes(task.id))
+        .map(task => `- ${task.title}${task.status === 'COMPLETED' ? ' ✓' : ''}`).join('\n');
+
+      const reportContent = `Daily Report:\n${tasksList}`;
+
+      const response = await fetch('/api/chat/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: reportContent,
+          isReport: true,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to send report');
+      }
+
+      setIsReportModalOpen(false);
+      setSelectedTasks([]);
+      await fetchMessages();
+    } catch (error) {
+      console.error('Error sending report:', error);
     }
   };
 
@@ -205,42 +284,6 @@ export default function ChatPage() {
       console.error('Error sending message:', error);
       setError(error instanceof Error ? error.message : 'Failed to send message');
       return;
-    }
-  };
-
-  const sendReport = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!reportContent.trim() || !session?.user) return;
-
-    try {
-      const response = await fetch('/api/chat/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          content: reportContent,
-          isReport: true
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.error || 'Failed to send report');
-      }
-
-      setReportContent('');
-      setIsReportModalOpen(false);
-      await fetchMessages();
-      setError(null);
-      
-      // Show points notification
-      if (session.user.role === 'STUDENT') {
-        setShowPointsNotification(true);
-        setTimeout(() => setShowPointsNotification(false), 3000);
-      }
-    } catch (error) {
-      console.error('Error sending report:', error);
-      setError(error instanceof Error ? error.message : 'Failed to send report');
     }
   };
 
@@ -498,13 +541,34 @@ export default function ChatPage() {
                 </svg>
               </button>
             </div>
-            <form onSubmit={sendReport}>
-              <textarea
-                value={reportContent}
-                onChange={(e) => setReportContent(e.target.value)}
-                placeholder="Share your progress for today. What did you accomplish? What are you working on?"
-                className="w-full h-32 rounded-lg border border-gray-200 p-3 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all resize-none mb-4"
-              />
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-medium text-gray-700">Select Tasks</h3>
+                <div className="space-y-3">
+                  {tasks.map((task) => (
+                    <div key={task.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={selectedTasks.includes(task.id)}
+                          onChange={() => handleTaskSelect(task.id)}
+                          className="w-4 h-4"
+                        />
+                        <div className="flex flex-col">
+                          <span className="text-sm">{task.title}</span>
+                          <span className="text-xs text-gray-500">{task.description}</span>
+                        </div>
+                      </div>
+                      <span className="text-xs text-gray-500">{task.dueDate}</span>
+                    </div>
+                  ))}
+                  {tasks.length === 0 && (
+                    <div className="text-center py-4 text-gray-500">
+                      <p className="text-sm">No tasks available</p>
+                    </div>
+                  )}
+                </div>
+              </div>
               <div className="flex justify-end gap-3">
                 <button
                   type="button"
@@ -514,15 +578,16 @@ export default function ChatPage() {
                   Cancel
                 </button>
                 <button
-                  type="submit"
-                  disabled={!reportContent.trim()}
+                  type="button"
+                  onClick={handleSubmitReport}
+                  disabled={selectedTasks.length === 0}
                   className="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
                 >
                   <Clock className="w-4 h-4" />
                   Submit Report
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

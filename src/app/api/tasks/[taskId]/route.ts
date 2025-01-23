@@ -13,7 +13,7 @@ export async function PUT(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { status } = await req.json();
+    const { status, messageId } = await req.json();
     const taskId = params.taskId;
 
     // Verify task belongs to user
@@ -31,7 +31,10 @@ export async function PUT(
 
     const task = await prisma.task.update({
       where: { id: taskId },
-      data: { status }
+      data: { 
+        status,
+        messageId: messageId || undefined
+      }
     });
 
     return NextResponse.json(task);
