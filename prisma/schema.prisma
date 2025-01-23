@@ -29,6 +29,7 @@ model User {
   clockingRecords ClockingRecord[]
   supervisor      User?            @relation("SupervisorToStudent", fields: [supervisorId], references: [id])
   students        User[]           @relation("SupervisorToStudent")
+  tasks           Task[]
 
   @@index([role])
   @@index([supervisorId])
@@ -110,4 +111,18 @@ model MessageView {
   @@unique([userId, messageId])
   @@index([userId])
   @@index([messageId])
+}
+
+model Task {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  dueDate     DateTime
+  status      String   @default("PENDING")
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

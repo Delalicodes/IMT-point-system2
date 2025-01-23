@@ -18,11 +18,20 @@ export default function StudentArenaLayout({
   };
   
   return (
-    <div className="flex h-screen bg-gray-100">
-      <Sidebar currentPath={pathname} />
-      <div className="flex-1 ml-64">
+    <div className="flex h-screen overflow-hidden bg-gray-100">
+      <div className={`fixed inset-y-0 left-0 z-50 w-64 transition-transform duration-300 transform ${
+        isSidebarOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <Sidebar currentPath={pathname} />
+      </div>
+      
+      <div className={`flex flex-col flex-1 transition-all duration-300 ${
+        isSidebarOpen ? 'ml-64' : 'ml-0'
+      }`}>
         <Header onMenuClick={handleMenuClick} />
-        {children}
+        <main className="flex-1 overflow-y-auto custom-scrollbar">
+          {children}
+        </main>
       </div>
     </div>
   );

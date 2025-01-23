@@ -47,6 +47,7 @@ const adminMenuItems: MenuItem[] = [
 
 const studentMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Medal, label: 'Student Arena', href: '/student-arena' },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
 ];
