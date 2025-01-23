@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -33,9 +33,13 @@ export async function POST(request: Request) {
       );
     }
 
+    // Generate a unique code for the course
+    const code = `COURSE_${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+
     // Log the request data for debugging
     console.log('Creating course with data:', {
       name,
+      code,
       description,
       subjects
     });
@@ -43,6 +47,7 @@ export async function POST(request: Request) {
     const course = await prisma.course.create({
       data: {
         name,
+        code,
         description: description || null,
         subjects: {
           create: Array.isArray(subjects) ? subjects.map(subject => ({

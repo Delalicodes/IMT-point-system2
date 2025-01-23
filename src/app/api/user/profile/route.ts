@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -37,6 +37,13 @@ export async function GET() {
     return NextResponse.json(user);
   } catch (error) {
     console.error('Error fetching user profile:', error);
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
     return NextResponse.json(
       { error: 'Failed to fetch user profile' },
       { status: 500 }
@@ -109,15 +116,14 @@ export async function PATCH(request: Request) {
 
     return NextResponse.json(updatedUser);
   } catch (error) {
-    console.error('Error details:', {
-      name: error.name,
-      message: error.message,
-      stack: error.stack,
-    });
-
-    return NextResponse.json(
-      { error: 'Failed to update user profile', details: error.message },
-      { status: 500 }
-    );
+    console.error('Error updating profile');
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        name: error.name,
+        message: error.message,
+        stack: error.stack,
+      });
+    }
+    return NextResponse.json({ error: 'Failed to update profile' }, { status: 500 });
   }
 }

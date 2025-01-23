@@ -1,6 +1,8 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 
 export async function GET() {
@@ -8,13 +10,13 @@ export async function GET() {
     const session = await getServerSession(authOptions);
     console.log('Session:', session);
     
-    if (!session?.user?.email) {
+    if (!session?.user?.name) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     // Get user with course
     const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
+      where: { username: session.user.name },
       include: {
         course: {
           include: {

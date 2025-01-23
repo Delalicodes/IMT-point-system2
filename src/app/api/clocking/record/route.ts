@@ -1,13 +1,13 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prisma';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { prisma } from '@/lib/prisma';
+import { authConfig } from '../../auth/auth.config';
 
 export async function POST(req: Request) {
   try {
     console.log('Starting clocking record request...');
 
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     console.log('Session data:', {
       user: session?.user,
       expires: session?.expires
@@ -129,8 +129,6 @@ export async function POST(req: Request) {
     });
   } catch (error) {
     console.error('Error recording clocking:', error);
-    
-    // Add more detailed error logging
     if (error instanceof Error) {
       console.error('Error details:', {
         message: error.message,
@@ -138,21 +136,21 @@ export async function POST(req: Request) {
         name: error.name,
         cause: error.cause
       });
+
+      // Check for specific Prisma errors
+      if ('code' in error && 'meta' in error && error.constructor?.name === 'PrismaClientKnownRequestError') {
+        console.error('Prisma error details:', {
+          code: error.code,
+          meta: error.meta,
+          clientVersion: (error as any).clientVersion
+        });
+      }
     }
 
-    // Check for specific Prisma errors
-    if (error.constructor.name === 'PrismaClientKnownRequestError') {
-      console.error('Prisma error details:', {
-        code: error.code,
-        meta: error.meta,
-        clientVersion: error.clientVersion
-      });
-    }
-
-    return NextResponse.json({ 
+    return NextResponse.json({
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error',
-      type: error.constructor.name
+      type: error instanceof Error ? error.constructor.name : 'UnknownError'
     }, { status: 500 });
   }
 }

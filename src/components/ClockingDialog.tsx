@@ -489,7 +489,7 @@ export default function ClockingDialog() {
                       className="w-full bg-white border border-gray-200 rounded-xl shadow-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     >
                       {subjects.length === 0 ? (
-                        <SelectItem value="loading" disabled>
+                        <SelectItem value="no-subjects">
                           No subjects available
                         </SelectItem>
                       ) : (
@@ -614,8 +614,8 @@ export default function ClockingDialog() {
                       caption_label: "text-sm font-medium text-gray-900",
                       nav: "space-x-1 flex items-center",
                       nav_button: "h-7 w-7 bg-transparent p-0 opacity-50 hover:opacity-100 inline-flex items-center justify-center",
-                      nav_button_previous: "absolute left-1",
-                      nav_button_next: "absolute right-1",
+                      nav_button_previous: "text-gray-600 cursor-pointer",
+                      nav_button_next: "text-gray-600 cursor-pointer",
                       table: "w-full border-collapse space-y-1",
                       head_row: "flex",
                       head_cell: "text-gray-500 rounded-md w-8 font-normal text-[0.8rem]",
@@ -628,10 +628,6 @@ export default function ClockingDialog() {
                       day_disabled: "text-gray-400 opacity-50",
                       day_range_middle: "aria-selected:bg-blue-100 aria-selected:text-blue-900",
                       day_hidden: "invisible",
-                    }}
-                    components={{
-                      IconLeft: () => <span className="text-gray-600">←</span>,
-                      IconRight: () => <span className="text-gray-600">→</span>,
                     }}
                   />
                 </div>

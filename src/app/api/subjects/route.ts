@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export async function GET() {
   try {
@@ -17,13 +17,12 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, code, description } = body;
+    const { name, courseId } = body;
 
     const subject = await prisma.subject.create({
       data: {
         name,
-        code,
-        description
+        courseId
       }
     });
 

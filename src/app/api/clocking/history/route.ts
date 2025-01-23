@@ -1,11 +1,13 @@
+export const dynamic = 'force-dynamic';
+
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import prisma from '@/lib/prisma';
-import { authOptions } from '../../auth/[...nextauth]/route';
+import { prisma } from '@/lib/prisma';
+import { authConfig } from '../../auth/auth.config';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -56,21 +58,21 @@ export async function GET() {
         name: error.name,
         cause: error.cause
       });
-    }
 
-    // Check for specific Prisma errors
-    if (error.constructor.name === 'PrismaClientKnownRequestError') {
-      console.error('Prisma error details:', {
-        code: error.code,
-        meta: error.meta,
-        clientVersion: error.clientVersion
-      });
+      // Check for specific Prisma errors
+      if ('code' in error && 'meta' in error && error.constructor?.name === 'PrismaClientKnownRequestError') {
+        console.error('Prisma error details:', {
+          code: error.code,
+          meta: error.meta,
+          clientVersion: (error as any).clientVersion
+        });
+      }
     }
 
     return NextResponse.json({ 
       error: 'Internal server error',
       details: error instanceof Error ? error.message : 'Unknown error',
-      type: error.constructor.name
+      type: error instanceof Error ? error.constructor.name : 'UnknownError'
     }, { status: 500 });
   }
 }

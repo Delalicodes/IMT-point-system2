@@ -14,11 +14,18 @@ import {
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 
+interface MenuItem {
+  icon: any;
+  label: string;
+  href: string;
+  subItems?: MenuItem[];
+}
+
 interface SidebarProps {
   currentPath: string;
 }
 
-const adminMenuItems = [
+const adminMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { 
     icon: Settings, 
@@ -34,7 +41,7 @@ const adminMenuItems = [
   { icon: Users, label: 'Students', href: '/dashboard/students' },
 ];
 
-const studentMenuItems = [
+const studentMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
 ];
@@ -107,7 +114,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                       }`}
                     />
                   </button>
-                  {openSetup && (
+                  {openSetup && item.subItems && (
                     <div className="mt-2 space-y-2">
                       {item.subItems.map((subItem) => {
                         const SubIcon = subItem.icon;

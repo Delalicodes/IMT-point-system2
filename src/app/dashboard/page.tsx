@@ -73,14 +73,11 @@ export default function DashboardPage() {
     }
   };
 
-  const fetchWeeklyPoints = async (date: Date) => {
-    let start: Date;
-    let end: Date;
+  const fetchWeeklyPoints = async (date: Date = selectedWeek) => {
+    const start = startOfWeek(date);
+    const end = endOfWeek(date);
     
     try {
-      start = startOfWeek(date, { weekStartsOn: 1 }); // Monday
-      end = endOfWeek(date, { weekStartsOn: 1 }); // Sunday
-
       const queryParams = new URLSearchParams({
         startDate: start.toISOString(),
         endDate: end.toISOString()
@@ -111,22 +108,19 @@ export default function DashboardPage() {
         totalPoints: data.totalPoints || 0,
         weekStart: format(start, 'MMM dd, yyyy'),
         weekEnd: format(end, 'MMM dd, yyyy'),
-        students: Array.isArray(data.students) ? data.students.map(student => ({
+        students: Array.isArray(data.students) ? data.students.map((student: any) => ({
           ...student,
           trend: 'neutral'
         })) : []
       });
     } catch (error) {
       console.error('Error fetching weekly points:', error);
-      // Only set weeklyPoints if start and end are defined
-      if (start && end) {
-        setWeeklyPoints({
-          totalPoints: 0,
-          weekStart: format(start, 'MMM dd, yyyy'),
-          weekEnd: format(end, 'MMM dd, yyyy'),
-          students: []
-        });
-      }
+      setWeeklyPoints({
+        totalPoints: 0,
+        weekStart: format(start, 'MMM dd, yyyy'),
+        weekEnd: format(end, 'MMM dd, yyyy'),
+        students: []
+      });
     }
   };
 
@@ -169,7 +163,7 @@ export default function DashboardPage() {
         <div className="flex items-center gap-4">
           <DatePicker
             selected={selectedDate}
-            onChange={(date: Date) => setSelectedDate(date)}
+            onChange={(date: Date | null) => setSelectedDate(date)}
             dateFormat="yyyy-MM-dd"
             className="bg-white border border-gray-200 rounded-md px-3 py-1.5 text-sm w-32"
             placeholderText="Select date"

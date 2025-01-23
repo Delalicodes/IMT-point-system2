@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
@@ -27,7 +27,19 @@ interface Course {
   subjects: string;
 }
 
-export default function UserSetupPage() {
+interface FormData {
+  firstName: string;
+  lastName: string;
+  username: string;
+  email: string;
+  phoneNumber: string;
+  courseId?: string;
+  password: string;
+  confirmPassword: string;
+  role: string;
+}
+
+function UserSetupContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const initialTab = parseInt(searchParams.get('tab') || '0');
@@ -41,16 +53,16 @@ export default function UserSetupPage() {
     window.history.pushState({}, '', url.toString());
   };
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     firstName: '',
     lastName: '',
     username: '',
     email: '',
     phoneNumber: '',
+    courseId: '',
     password: '',
     confirmPassword: '',
     role: 'STUDENT',
-    courseId: ''
   });
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -110,10 +122,10 @@ export default function UserSetupPage() {
         username: '',
         email: '',
         phoneNumber: '',
+        courseId: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
-        courseId: ''
       });
 
       // Switch to manage users tab
@@ -125,7 +137,7 @@ export default function UserSetupPage() {
     }
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
@@ -295,10 +307,10 @@ export default function UserSetupPage() {
         username: '',
         email: '',
         phoneNumber: '',
+        courseId: '',
         password: '',
         confirmPassword: '',
         role: 'STUDENT',
-        courseId: ''
       });
       toast.success('User updated successfully');
     } catch (error) {
@@ -315,7 +327,7 @@ export default function UserSetupPage() {
         username: editingUser.username,
         email: editingUser.email,
         phoneNumber: editingUser.phoneNumber,
-        courseId: editingUser.courseId,
+        courseId: editingUser.courseId || '',
         password: '',
         confirmPassword: '',
         role: editingUser.role,
@@ -763,10 +775,10 @@ export default function UserSetupPage() {
                                           username: user.username,
                                           email: user.email || '',
                                           phoneNumber: user.phoneNumber || '',
+                                          courseId: user.courseId || '',
                                           password: '',
                                           confirmPassword: '',
                                           role: user.role,
-                                          courseId: user.courseId || ''
                                         });
                                         setShowEditModal(true);
                                       }}
@@ -845,10 +857,10 @@ export default function UserSetupPage() {
                                   username: '',
                                   email: '',
                                   phoneNumber: '',
+                                  courseId: '',
                                   password: '',
                                   confirmPassword: '',
                                   role: 'STUDENT',
-                                  courseId: ''
                                 });
                               }}
                               className="text-gray-400 hover:text-gray-500"
@@ -1015,10 +1027,10 @@ export default function UserSetupPage() {
                                   username: '',
                                   email: '',
                                   phoneNumber: '',
+                                  courseId: '',
                                   password: '',
                                   confirmPassword: '',
                                   role: 'STUDENT',
-                                  courseId: ''
                                 });
                               }}
                               className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
@@ -1110,5 +1122,13 @@ export default function UserSetupPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function UserSetupPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <UserSetupContent />
+    </Suspense>
   );
 }

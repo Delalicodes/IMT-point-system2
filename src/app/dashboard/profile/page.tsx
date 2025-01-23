@@ -8,7 +8,6 @@ interface UserProfile {
   firstName: string;
   lastName: string;
   email: string | null;
-  phoneNumber: string | null;
   username: string;
   imageUrl: string | null;
 }
@@ -25,7 +24,6 @@ export default function ProfilePage() {
     firstName: session?.user?.firstName || '',
     lastName: session?.user?.lastName || '',
     email: session?.user?.email || '',
-    phoneNumber: session?.user?.phoneNumber || '',
     username: session?.user?.username || '',
     imageUrl: session?.user?.imageUrl || null,
   });
@@ -46,7 +44,6 @@ export default function ProfilePage() {
         firstName: session.user.firstName || '',
         lastName: session.user.lastName || '',
         email: session.user.email || '',
-        phoneNumber: session.user.phoneNumber || '',
         username: session.user.username || '',
         imageUrl: session.user.imageUrl || null,
       });
@@ -70,7 +67,6 @@ export default function ProfilePage() {
         firstName: data.firstName || '',
         lastName: data.lastName || '',
         email: data.email || '',
-        phoneNumber: data.phoneNumber || '',
         username: data.username || '',
         imageUrl: data.imageUrl || null,
       });
@@ -359,23 +355,6 @@ export default function ProfilePage() {
                   />
                   <Mail className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
                 </div>
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="phoneNumber" className="block text-sm font-medium text-gray-700 mb-1">
-                Phone Number
-              </label>
-              <div className="relative">
-                <input
-                  type="tel"
-                  id="phoneNumber"
-                  value={profile.phoneNumber || ''}
-                  onChange={(e) => setProfile({ ...profile, phoneNumber: e.target.value })}
-                  disabled={!isEditing}
-                  className="w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100 disabled:cursor-not-allowed"
-                />
-                <Phone className="w-5 h-5 text-gray-400 absolute left-3 top-2.5" />
               </div>
             </div>
 

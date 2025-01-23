@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { pointsEventEmitter } from '@/lib/pointsEventEmitter';
@@ -11,19 +11,16 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { userId, points, courseId, reason } = await request.json();
+    const { userId, points, reason } = await request.json();
 
-    const pointsRecord = await prisma.pointsRecord.create({
+    const pointsRecord = await prisma.point.create({
       data: {
         points,
         userId,
-        courseId,
-        reason,
-        adminId: session.user.id
+        note: reason,
       },
       include: {
-        user: true,
-        course: true
+        user: true
       }
     });
 
@@ -31,7 +28,6 @@ export async function POST(request: Request) {
     pointsEventEmitter.emitPointsUpdate(userId, {
       type: 'POINTS_ADDED',
       points: pointsRecord.points,
-      courseId: pointsRecord.courseId,
       timestamp: pointsRecord.createdAt
     });
 

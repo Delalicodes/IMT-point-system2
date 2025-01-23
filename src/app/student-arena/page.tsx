@@ -417,12 +417,6 @@ export default function StudentArena() {
               showTooltip={true}
               variant="donut"
               label={`${((courseChartData[0]?.points || 0) / totalPoints * 100).toFixed(0)}%`}
-              labelProps={{
-                className: "text-3xl font-bold text-gray-500",
-              }}
-              valueClassName="text-gray-500"
-              animationDuration={1000}
-              thickness={36}
             />
             <div className="mt-6 space-y-2">
               {courseChartData.map((item, index) => (
