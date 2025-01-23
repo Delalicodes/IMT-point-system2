@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 import { authConfig } from '../../auth/auth.config';
 
 const prismaClient = prisma;

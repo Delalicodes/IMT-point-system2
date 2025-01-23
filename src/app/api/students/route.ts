@@ -1,11 +1,13 @@
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
     const students = await prisma.user.findMany({
       where: {
-        role: 'STUDENT'
+        role: {
+          in: ['STUDENT', 'SUPERVISOR']
+        }
       },
       select: {
         id: true,
@@ -14,6 +16,7 @@ export async function GET() {
         email: true,
         username: true,
         phoneNumber: true,
+        role: true,
         status: true,
         createdAt: true,
         course: {

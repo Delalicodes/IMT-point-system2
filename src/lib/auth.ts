@@ -1,6 +1,6 @@
 import type { NextAuthOptions, Session, User } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import { prisma } from "./prisma";
+import prisma from "./prisma";
 import { compare } from "bcrypt";
 
 // Extend the built-in User type to include our custom fields
