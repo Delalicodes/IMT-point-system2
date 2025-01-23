@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from 'react';
 import { Dialog } from '@headlessui/react';
-import { TextInput, Select, SelectItem, Button } from '@tremor/react';
-import { X, UserPlus, School } from 'lucide-react';
+import { Select, SelectItem, Button } from '@tremor/react';
+import { X, UserPlus, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-interface Course {
+interface User {
   id: string;
-  name: string;
-  code: string;
+  firstName: string;
+  lastName: string;
+  role: string;
 }
 
 interface SupervisorModalProps {
@@ -18,32 +19,33 @@ interface SupervisorModalProps {
 }
 
 export default function SupervisorModal({ isOpen, onClose }: SupervisorModalProps) {
-  const [name, setName] = useState('');
-  const [courseId, setCourseId] = useState('');
-  const [courses, setCourses] = useState<Course[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState('');
+  const [supervisors, setSupervisors] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    fetchCourses();
+    fetchSupervisors();
   }, []);
 
-  const fetchCourses = async () => {
+  const fetchSupervisors = async () => {
     try {
-      const response = await fetch('/api/courses');
+      const response = await fetch('/api/students');
       const data = await response.json();
       if (response.ok) {
-        setCourses(data);
+        // Filter users with SUPERVISOR role
+        const supervisorUsers = data.filter((user: User) => user.role === 'SUPERVISOR');
+        setSupervisors(supervisorUsers);
       }
     } catch (error) {
-      console.error('Error fetching courses:', error);
-      toast.error('Failed to load courses');
+      console.error('Error fetching supervisors:', error);
+      toast.error('Failed to load supervisors');
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !courseId) {
-      toast.error('Please fill in all fields');
+    if (!selectedUserId) {
+      toast.error('Please select a supervisor');
       return;
     }
 
@@ -55,16 +57,14 @@ export default function SupervisorModal({ isOpen, onClose }: SupervisorModalProp
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          name,
-          courseId,
+          userId: selectedUserId,
         }),
       });
 
       if (response.ok) {
         toast.success('Supervisor added successfully');
         onClose();
-        setName('');
-        setCourseId('');
+        setSelectedUserId('');
       } else {
         const error = await response.json();
         toast.error(error.message || 'Failed to add supervisor');
@@ -103,49 +103,30 @@ export default function SupervisorModal({ isOpen, onClose }: SupervisorModalProp
 
             <form onSubmit={handleSubmit} className="space-y-8">
               <div className="space-y-2">
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Supervisor Name
-                </label>
-                <div className="relative">
-                  <TextInput
-                    id="name"
-                    placeholder="Enter full name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    icon={UserPlus}
-                    className="w-full rounded-xl border-2 border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
-                  />
-                </div>
-                <p className="mt-1 text-sm text-gray-500">
-                  Enter the full name of the supervisor
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="course" className="block text-sm font-medium text-gray-700">
-                  Assigned Course
+                <label htmlFor="supervisor" className="block text-sm font-medium text-gray-700">
+                  Select Supervisor
                 </label>
                 <div className="relative">
                   <Select
-                    id="course"
-                    placeholder="Select a course"
-                    value={courseId}
-                    onValueChange={setCourseId}
-                    icon={School}
+                    id="supervisor"
+                    placeholder="Select a supervisor"
+                    value={selectedUserId}
+                    onValueChange={setSelectedUserId}
+                    icon={Shield}
                     className="w-full rounded-xl border-2 border-gray-200 shadow-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200"
                   >
-                    {courses.map((course) => (
-                      <SelectItem key={course.id} value={course.id} className="py-2.5">
+                    {supervisors.map((supervisor) => (
+                      <SelectItem key={supervisor.id} value={supervisor.id} className="py-2.5">
                         <div className="flex items-center space-x-2">
-                          <School className="h-4 w-4 text-gray-500" />
-                          <span>{course.name}</span>
+                          <Shield className="h-4 w-4 text-purple-500" />
+                          <span>{supervisor.firstName} {supervisor.lastName}</span>
                         </div>
                       </SelectItem>
                     ))}
                   </Select>
                 </div>
                 <p className="mt-1 text-sm text-gray-500">
-                  Choose the course this supervisor will oversee
+                  Select from the list of users with supervisor role
                 </p>
               </div>
 

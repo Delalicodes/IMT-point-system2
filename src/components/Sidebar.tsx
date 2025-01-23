@@ -11,7 +11,7 @@ import {
   BookOpen,
   GraduationCap,
   MessageCircle,
-  UserCheck
+  UserCheck,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -35,13 +35,13 @@ const adminMenuItems: MenuItem[] = [
     href: '#',
     subItems: [
       { icon: UserCog, label: 'Users', href: '/dashboard/setups/user' },
-      { icon: UserCheck, label: 'Supervisors', href: '/dashboard/setups/supervisor' },
       { icon: Medal, label: 'Points', href: '/dashboard/setups/points' },
       { icon: BookOpen, label: 'Subjects', href: '/dashboard/setups/subjects' },
     ]
   },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
+  { icon: UserCheck, label: 'Supervisors', href: '/dashboard/setups/supervisor' },
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
 ];
 

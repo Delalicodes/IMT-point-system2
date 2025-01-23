@@ -1,22 +1,23 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Card, Title, Text, Button, Badge, TextInput } from '@tremor/react';
-import { UserPlus, Search, Mail, Trash2, Edit2, School } from 'lucide-react';
-import SupervisorModal from '@/components/SupervisorModal';
+import { Card, Title, Text, Badge, TextInput } from '@tremor/react';
+import { Search, Mail, Shield, GraduationCap } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 interface Supervisor {
   id: string;
-  name: string;
+  firstName: string;
+  lastName: string;
   email: string;
-  course: {
+  role: string;
+  course?: {
+    id: string;
     name: string;
   };
 }
 
 export default function SupervisorSetupPage() {
-  const [showModal, setShowModal] = useState(false);
   const [supervisors, setSupervisors] = useState<Supervisor[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -42,47 +43,18 @@ export default function SupervisorSetupPage() {
     }
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this supervisor?')) return;
-
-    try {
-      const response = await fetch(`/api/supervisors/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (response.ok) {
-        toast.success('Supervisor deleted successfully');
-        fetchSupervisors();
-      } else {
-        toast.error('Failed to delete supervisor');
-      }
-    } catch (error) {
-      console.error('Error deleting supervisor:', error);
-      toast.error('Failed to delete supervisor');
-    }
-  };
-
   const filteredSupervisors = supervisors.filter(supervisor =>
-    supervisor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    `${supervisor.firstName} ${supervisor.lastName}`.toLowerCase().includes(searchQuery.toLowerCase()) ||
     supervisor.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    supervisor.course.name.toLowerCase().includes(searchQuery.toLowerCase())
+    supervisor.course?.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className="p-6 space-y-6">
       {/* Header Section */}
-      <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Supervisor Management</h1>
-          <Text className="mt-1">Manage supervisors and their assigned courses</Text>
-        </div>
-        <Button 
-          icon={UserPlus}
-          onClick={() => setShowModal(true)}
-          className="w-full md:w-auto rounded-xl"
-        >
-          Add Supervisor
-        </Button>
+      <div>
+        <h1 className="text-2xl font-bold text-gray-900">Supervisor Management</h1>
+        <Text className="mt-1">View supervisors and their assigned courses</Text>
       </div>
 
       {/* Search and Filters */}
@@ -107,19 +79,18 @@ export default function SupervisorSetupPage() {
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Name</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Email</th>
                 <th className="px-4 py-3 text-left text-sm font-semibold text-gray-900">Course</th>
-                <th className="px-4 py-3 text-right text-sm font-semibold text-gray-900">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
               {loading ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
                     Loading supervisors...
                   </td>
                 </tr>
               ) : filteredSupervisors.length === 0 ? (
                 <tr>
-                  <td colSpan={4} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
                     No supervisors found
                   </td>
                 </tr>
@@ -128,11 +99,11 @@ export default function SupervisorSetupPage() {
                   <tr key={supervisor.id} className="hover:bg-gray-50">
                     <td className="px-4 py-4">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 flex-shrink-0 rounded-xl bg-gray-100 flex items-center justify-center">
-                          <UserPlus className="h-5 w-5 text-gray-500" />
+                        <div className="h-10 w-10 flex-shrink-0 rounded-xl bg-purple-100 flex items-center justify-center">
+                          <Shield className="h-5 w-5 text-purple-600" />
                         </div>
                         <div className="ml-4">
-                          <div className="font-medium text-gray-900">{supervisor.name}</div>
+                          <div className="font-medium text-gray-900">{supervisor.firstName} {supervisor.lastName}</div>
                         </div>
                       </div>
                     </td>
@@ -144,31 +115,16 @@ export default function SupervisorSetupPage() {
                     </td>
                     <td className="px-4 py-4">
                       <div className="flex items-center">
-                        <School className="h-4 w-4 mr-2 text-gray-500" />
-                        <Badge color="blue" className="rounded-xl">{supervisor.course.name}</Badge>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4">
-                      <div className="flex justify-end space-x-2">
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          icon={Edit2}
-                          onClick={() => toast.success('Edit feature coming soon')}
-                          className="rounded-xl"
-                        >
-                          Edit
-                        </Button>
-                        <Button
-                          variant="secondary"
-                          size="xs"
-                          icon={Trash2}
-                          color="red"
-                          onClick={() => handleDelete(supervisor.id)}
-                          className="rounded-xl"
-                        >
-                          Delete
-                        </Button>
+                        <GraduationCap className="h-4 w-4 mr-2 text-gray-500" />
+                        {supervisor.course ? (
+                          <Badge 
+                            className="rounded-xl bg-blue-50 text-blue-700 border border-blue-200 px-3 py-1 text-sm font-medium"
+                          >
+                            {supervisor.course.name}
+                          </Badge>
+                        ) : (
+                          <span className="text-gray-400">No course assigned</span>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -178,14 +134,6 @@ export default function SupervisorSetupPage() {
           </table>
         </div>
       </Card>
-
-      <SupervisorModal
-        isOpen={showModal}
-        onClose={() => {
-          setShowModal(false);
-          fetchSupervisors();
-        }}
-      />
     </div>
   );
 }

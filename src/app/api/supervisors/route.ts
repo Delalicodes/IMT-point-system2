@@ -5,54 +5,6 @@ import prisma from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function POST(request: Request) {
-  try {
-    const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'ADMIN') {
-      return new NextResponse(
-        JSON.stringify({ message: 'Unauthorized' }),
-        { status: 401 }
-      );
-    }
-
-    const { name, courseId } = await request.json();
-
-    if (!name || !courseId) {
-      return new NextResponse(
-        JSON.stringify({ message: 'Missing required fields' }),
-        { status: 400 }
-      );
-    }
-
-    // Create supervisor user with SUPERVISOR role
-    const supervisor = await prisma.user.create({
-      data: {
-        firstName: name.split(' ')[0],
-        lastName: name.split(' ').slice(1).join(' ') || '',
-        username: name.toLowerCase().replace(/\s+/g, '.'),
-        email: `${name.toLowerCase().replace(/\s+/g, '.')}@supervisor.imt`,
-        password: 'changeme123', // Default password that should be changed on first login
-        role: 'SUPERVISOR',
-        courseId,
-      },
-      include: {
-        course: true,
-      },
-    });
-
-    return new NextResponse(
-      JSON.stringify(supervisor),
-      { status: 201 }
-    );
-  } catch (error) {
-    console.error('Error creating supervisor:', error);
-    return new NextResponse(
-      JSON.stringify({ message: 'Internal server error' }),
-      { status: 500 }
-    );
-  }
-}
-
 export async function GET() {
   try {
     const session = await getServerSession(authOptions);
@@ -65,21 +17,77 @@ export async function GET() {
 
     const supervisors = await prisma.user.findMany({
       where: {
-        role: 'SUPERVISOR',
+        role: 'SUPERVISOR'
       },
-      include: {
-        course: true,
+      select: {
+        id: true,
+        firstName: true,
+        lastName: true,
+        email: true,
+        role: true,
+        course: {
+          select: {
+            id: true,
+            name: true,
+          }
+        }
       },
     });
 
-    return new NextResponse(
-      JSON.stringify(supervisors),
-      { status: 200 }
-    );
+    return NextResponse.json(supervisors);
   } catch (error) {
     console.error('Error fetching supervisors:', error);
-    return new NextResponse(
-      JSON.stringify({ message: 'Internal server error' }),
+    return NextResponse.json(
+      { error: 'Failed to fetch supervisors' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'ADMIN') {
+      return new NextResponse(
+        JSON.stringify({ message: 'Unauthorized' }),
+        { status: 401 }
+      );
+    }
+
+    const { userId } = await request.json();
+
+    if (!userId) {
+      return new NextResponse(
+        JSON.stringify({ message: 'User ID is required' }),
+        { status: 400 }
+      );
+    }
+
+    // Check if user exists and is a supervisor
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: { role: true }
+    });
+
+    if (!user) {
+      return new NextResponse(
+        JSON.stringify({ message: 'User not found' }),
+        { status: 404 }
+      );
+    }
+
+    if (user.role !== 'SUPERVISOR') {
+      return new NextResponse(
+        JSON.stringify({ message: 'Selected user is not a supervisor' }),
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Supervisor added successfully' });
+  } catch (error) {
+    console.error('Error creating supervisor:', error);
+    return NextResponse.json(
+      { message: 'Failed to create supervisor' },
       { status: 500 }
     );
   }
