@@ -9,7 +9,8 @@ import {
   UserCog,
   Medal,
   BookOpen,
-  GraduationCap
+  GraduationCap,
+  MessageCircle
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -39,11 +40,13 @@ const adminMenuItems: MenuItem[] = [
   },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
+  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
 ];
 
 const studentMenuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
+  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
 ];
 
 export default function Sidebar({ currentPath }: SidebarProps) {
