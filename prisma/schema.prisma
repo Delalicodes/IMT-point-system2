@@ -90,6 +90,7 @@ model ChatMessage {
   createdAt DateTime      @default(now())
   updatedAt DateTime      @updatedAt
   isReport  Boolean       @default(false)
+  approved  Boolean?      // Null means pending, true is approved, false is rejected
   replyToId String?
   replyTo   ChatMessage?  @relation("Replies", fields: [replyToId], references: [id])
   replies   ChatMessage[] @relation("Replies")

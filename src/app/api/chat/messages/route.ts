@@ -10,7 +10,60 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    console.log('Fetching messages for user:', {
+      userId: session.user.id,
+      role: session.user.role
+    });
+
+    // Get the user with their supervisor info
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        supervisor: true,
+        students: true
+      }
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
+    // Determine which messages to fetch based on role
+    let whereCondition = {};
+    if (session.user.role === 'STUDENT') {
+      whereCondition = {
+        OR: [
+          { userId: session.user.id }, // User's own messages
+          { isReport: false }, // All non-report messages
+          { 
+            AND: [
+              { isReport: true },
+              { userId: session.user.id }
+            ]
+          } // User's own reports
+        ]
+      };
+    } else if (session.user.role === 'ADMIN') {
+      // If admin is a supervisor, show their students' reports
+      if (user.students && user.students.length > 0) {
+        const studentIds = user.students.map(student => student.id);
+        whereCondition = {
+          OR: [
+            { isReport: false }, // All non-report messages
+            { userId: { in: studentIds } } // Reports from their students
+          ]
+        };
+      } else {
+        // Regular admin sees everything
+        whereCondition = {};
+      }
+    }
+
     const messages = await prisma.chatMessage.findMany({
+      where: whereCondition,
       orderBy: {
         createdAt: 'asc',
       },
@@ -40,11 +93,22 @@ export async function GET() {
       },
     });
 
+    console.log('Found messages:', {
+      count: messages.length,
+      reportCount: messages.filter(m => m.isReport).length
+    });
+
     return NextResponse.json(messages);
   } catch (error) {
     console.error('Error fetching messages:', error);
+    if (error instanceof Error) {
+      return NextResponse.json(
+        { error: `Failed to fetch messages: ${error.message}` },
+        { status: 500 }
+      );
+    }
     return NextResponse.json(
-      { error: 'Error fetching messages' },
+      { error: 'Failed to fetch messages' },
       { status: 500 }
     );
   }

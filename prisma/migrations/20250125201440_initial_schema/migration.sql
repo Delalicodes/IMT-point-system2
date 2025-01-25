@@ -10,16 +10,19 @@ CREATE TABLE "User" (
     "role" TEXT NOT NULL DEFAULT 'STUDENT',
     "status" TEXT NOT NULL DEFAULT 'ACTIVE',
     "courseId" TEXT,
+    "supervisorId" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "imageUrl" TEXT DEFAULT '/images/default-avatar.png',
-    CONSTRAINT "User_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+    CONSTRAINT "User_courseId_fkey" FOREIGN KEY ("courseId") REFERENCES "Course" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
+    CONSTRAINT "User_supervisorId_fkey" FOREIGN KEY ("supervisorId") REFERENCES "User" ("id") ON DELETE SET NULL ON UPDATE CASCADE
 );
 
 -- CreateTable
 CREATE TABLE "Course" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
+    "code" TEXT NOT NULL,
     "description" TEXT,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL
@@ -66,6 +69,7 @@ CREATE TABLE "ChatMessage" (
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" DATETIME NOT NULL,
     "isReport" BOOLEAN NOT NULL DEFAULT false,
+    "approved" BOOLEAN,
     "replyToId" TEXT,
     CONSTRAINT "ChatMessage_replyToId_fkey" FOREIGN KEY ("replyToId") REFERENCES "ChatMessage" ("id") ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT "ChatMessage_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
@@ -81,11 +85,32 @@ CREATE TABLE "MessageView" (
     CONSTRAINT "MessageView_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
+-- CreateTable
+CREATE TABLE "Task" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "title" TEXT NOT NULL,
+    "description" TEXT NOT NULL,
+    "dueDate" DATETIME NOT NULL,
+    "status" TEXT NOT NULL DEFAULT 'PENDING',
+    "userId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    "messageId" TEXT,
+    CONSTRAINT "Task_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Task_messageId_fkey" FOREIGN KEY ("messageId") REFERENCES "ChatMessage" ("id") ON DELETE SET NULL ON UPDATE CASCADE
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_username_key" ON "User"("username");
 
 -- CreateIndex
 CREATE INDEX "User_role_idx" ON "User"("role");
+
+-- CreateIndex
+CREATE INDEX "User_supervisorId_idx" ON "User"("supervisorId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Course_code_key" ON "Course"("code");
 
 -- CreateIndex
 CREATE INDEX "Subject_courseId_idx" ON "Subject"("courseId");
@@ -110,3 +135,9 @@ CREATE INDEX "MessageView_messageId_idx" ON "MessageView"("messageId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MessageView_userId_messageId_key" ON "MessageView"("userId", "messageId");
+
+-- CreateIndex
+CREATE INDEX "Task_userId_idx" ON "Task"("userId");
+
+-- CreateIndex
+CREATE INDEX "Task_messageId_idx" ON "Task"("messageId");
