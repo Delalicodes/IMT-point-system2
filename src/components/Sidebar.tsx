@@ -30,8 +30,11 @@ interface SidebarProps {
   currentPath: string;
 }
 
-const adminMenuItems: MenuItem[] = [
+const allMenuItems: MenuItem[] = [
+  // Dashboard section
   { icon: Home, label: 'Dashboard', href: '/dashboard' },
+  
+  // Setup section
   { 
     icon: Settings, 
     label: 'Setup', 
@@ -42,23 +45,18 @@ const adminMenuItems: MenuItem[] = [
       { icon: BookOpen, label: 'Subjects', href: '/dashboard/setups/subject' },
     ]
   },
+  
+  // Management section
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
   { icon: UserCheck, label: 'Supervisors', href: '/dashboard/setups/supervisor' },
+  
+  // Common features
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
   { icon: Medal, label: 'Points', href: '/dashboard/points' },
-];
-
-const supervisorMenuItems: MenuItem[] = [
-  { icon: Home, label: 'Dashboard', href: '/dashboard' },
-  { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
-  { icon: Medal, label: 'Points', href: '/dashboard/points' },
-];
-
-const studentMenuItems: MenuItem[] = [
-  { icon: Home, label: 'Home', href: '/student-arena' },
-  { icon: MessageSquare, label: 'Chat', href: '/student-arena/chat' },
-  { icon: Medal, label: 'Points', href: '/student-arena/points' },
+  
+  // Student Arena section
+  { icon: Home, label: 'Student Arena', href: '/student-arena' },
   { icon: Clock, label: 'Clocking', href: '/student-arena/clocking' },
 ];
 
@@ -68,10 +66,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const [openSetup, setOpenSetup] = useState(false);
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const { data: session } = useSession();
-
-  const isStudent = session?.user?.role === 'STUDENT';
-  const isSupervisor = session?.user?.role === 'SUPERVISOR';
-  const menuItems = isStudent ? studentMenuItems : isSupervisor ? supervisorMenuItems : adminMenuItems;
 
   useEffect(() => {
     if (session?.user?.imageUrl) {
@@ -107,7 +101,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       </div>
 
       <nav className="space-y-2">
-        {menuItems.map((item) => {
+        {allMenuItems.map((item) => {
           const Icon = item.icon;
           const hasSubItems = item.subItems !== undefined;
 
