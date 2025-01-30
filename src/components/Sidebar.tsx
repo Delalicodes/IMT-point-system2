@@ -12,6 +12,9 @@ import {
   GraduationCap,
   MessageCircle,
   UserCheck,
+  Home,
+  MessageSquare,
+  Clock,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -28,28 +31,35 @@ interface SidebarProps {
 }
 
 const adminMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
+  { icon: Home, label: 'Dashboard', href: '/dashboard' },
   { 
     icon: Settings, 
     label: 'Setup', 
     href: '#',
     subItems: [
       { icon: UserCog, label: 'Users', href: '/dashboard/setups/user' },
-      { icon: Medal, label: 'Points', href: '/dashboard/setups/points' },
-      { icon: BookOpen, label: 'Subjects', href: '/dashboard/setups/subjects' },
+      { icon: GraduationCap, label: 'Courses', href: '/dashboard/setups/course' },
+      { icon: BookOpen, label: 'Subjects', href: '/dashboard/setups/subject' },
     ]
   },
   { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
   { icon: Users, label: 'Students', href: '/dashboard/students' },
   { icon: UserCheck, label: 'Supervisors', href: '/dashboard/setups/supervisor' },
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
+  { icon: Medal, label: 'Points', href: '/dashboard/points' },
+];
+
+const supervisorMenuItems: MenuItem[] = [
+  { icon: Home, label: 'Dashboard', href: '/dashboard' },
+  { icon: MessageSquare, label: 'Chat', href: '/dashboard/chat' },
+  { icon: Medal, label: 'Points', href: '/dashboard/points' },
 ];
 
 const studentMenuItems: MenuItem[] = [
-  { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard' },
-  { icon: Medal, label: 'Student Arena', href: '/student-arena' },
-  { icon: GraduationCap, label: 'Courses', href: '/dashboard/courses' },
-  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
+  { icon: Home, label: 'Home', href: '/student-arena' },
+  { icon: MessageSquare, label: 'Chat', href: '/student-arena/chat' },
+  { icon: Medal, label: 'Points', href: '/student-arena/points' },
+  { icon: Clock, label: 'Clocking', href: '/student-arena/clocking' },
 ];
 
 export default function Sidebar({ currentPath }: SidebarProps) {
@@ -60,7 +70,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const { data: session } = useSession();
 
   const isStudent = session?.user?.role === 'STUDENT';
-  const menuItems = isStudent ? studentMenuItems : adminMenuItems;
+  const isSupervisor = session?.user?.role === 'SUPERVISOR';
+  const menuItems = isStudent ? studentMenuItems : isSupervisor ? supervisorMenuItems : adminMenuItems;
 
   useEffect(() => {
     if (session?.user?.imageUrl) {
