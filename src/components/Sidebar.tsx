@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import {
-  LayoutDashboard,
   Users,
   ChevronDown,
   Settings,
@@ -13,7 +12,6 @@ import {
   MessageCircle,
   UserCheck,
   Home,
-  MessageSquare,
   Clock,
 } from 'lucide-react';
 import { useRouter, usePathname } from 'next/navigation';
@@ -30,7 +28,8 @@ interface SidebarProps {
   currentPath: string;
 }
 
-const allMenuItems: MenuItem[] = [
+// Admin menu items
+const adminMenuItems: MenuItem[] = [
   // Dashboard section
   { icon: Home, label: 'Dashboard', href: '/dashboard' },
   
@@ -54,10 +53,19 @@ const allMenuItems: MenuItem[] = [
   // Common features
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
   { icon: Medal, label: 'Points', href: '/dashboard/points' },
-  
-  // Student Arena section
+];
+
+// Student menu items
+const studentMenuItems: MenuItem[] = [
   { icon: Home, label: 'Student Arena', href: '/student-arena' },
+  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
   { icon: Clock, label: 'Clocking', href: '/student-arena/clocking' },
+];
+
+// Supervisor menu items
+const supervisorMenuItems: MenuItem[] = [
+  { icon: Home, label: 'Student Arena', href: '/student-arena' },
+  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
 ];
 
 export default function Sidebar({ currentPath }: SidebarProps) {
@@ -83,6 +91,22 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     return currentPath.startsWith(path);
   };
 
+  // Choose menu items based on user role
+  const getMenuItems = () => {
+    switch (session?.user?.role) {
+      case 'ADMIN':
+        return adminMenuItems;
+      case 'SUPERVISOR':
+        return supervisorMenuItems;
+      case 'STUDENT':
+        return studentMenuItems;
+      default:
+        return [];
+    }
+  };
+
+  const menuItems = getMenuItems();
+
   return (
     <div className="h-full w-64 bg-[#0A1E54] text-white p-6 overflow-y-auto">
       <div className="flex items-center mb-8">
@@ -101,7 +125,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       </div>
 
       <nav className="space-y-2">
-        {allMenuItems.map((item) => {
+        {menuItems.map((item) => {
           const Icon = item.icon;
           const hasSubItems = item.subItems !== undefined;
 

@@ -13,13 +13,18 @@ export default withAuth({
 
       const userRole = token.role as string;
       
-      // Student routes
+      // Student routes - only students can access student arena
       if (path.startsWith('/student-arena')) {
-        return userRole === 'STUDENT';
+        return ['STUDENT', 'SUPERVISOR'].includes(userRole);
       }
       
       // Dashboard routes
       if (path.startsWith('/dashboard')) {
+        // Chat is accessible by all users
+        if (path.startsWith('/dashboard/chat')) {
+          return true;
+        }
+
         // Only admin can access setup routes
         if (path.startsWith('/dashboard/setups')) {
           return userRole === 'ADMIN';
@@ -35,11 +40,17 @@ export default withAuth({
           return userRole === 'ADMIN';
         }
 
-        // Chat, points, and main dashboard accessible by admin and supervisor
-        if (path === '/dashboard' || path.startsWith('/dashboard/chat') || path.startsWith('/dashboard/points')) {
+        // Points accessible by admin and supervisor
+        if (path.startsWith('/dashboard/points')) {
           return ['ADMIN', 'SUPERVISOR'].includes(userRole);
         }
 
+        // Main dashboard accessible by admin and supervisor
+        if (path === '/dashboard') {
+          return ['ADMIN', 'SUPERVISOR'].includes(userRole);
+        }
+
+        // By default, only admin can access other dashboard routes
         return userRole === 'ADMIN';
       }
       

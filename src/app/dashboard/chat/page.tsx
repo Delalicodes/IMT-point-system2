@@ -423,7 +423,8 @@ export default function ChatPage() {
               <h1 className="text-xl font-semibold text-gray-800">IMT Chat Room</h1>
               <p className="text-sm text-gray-500 mt-0.5">Connect with students and admins</p>
             </div>
-            {session?.user?.role === 'STUDENT' && (
+            {/* Show report button for students and supervisors */}
+            {(session?.user?.role === 'STUDENT' || session?.user?.role === 'SUPERVISOR') && (
               <Button
                 variant="outline"
                 size="sm"
@@ -715,7 +716,7 @@ export default function ChatPage() {
 
         {/* Input */}
         <div className="border-t p-4 bg-white">
-          {session?.user?.role === 'STUDENT' && (
+          {(session?.user?.role === 'STUDENT' || session?.user?.role === 'SUPERVISOR') && (
             <Button
               variant="outline"
               size="sm"
