@@ -44,7 +44,7 @@ interface FormData {
 function UserSetupContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const initialTab = parseInt(searchParams.get('tab') || '0');
+  const initialTab = parseInt(searchParams?.get('tab') || '0');
   const [activeTab, setActiveTab] = useState(initialTab);
 
   const handleTabChange = (index: number) => {

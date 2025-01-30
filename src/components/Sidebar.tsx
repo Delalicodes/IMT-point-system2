@@ -74,6 +74,10 @@ export default function Sidebar({ currentPath }: SidebarProps) {
     }
   };
 
+  const isActive = (path: string) => {
+    return currentPath.startsWith(path);
+  };
+
   return (
     <div className="h-full w-64 bg-[#0A1E54] text-white p-6 overflow-y-auto">
       <div className="flex items-center mb-8">
@@ -94,7 +98,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
       <nav className="space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href;
           const hasSubItems = item.subItems !== undefined;
 
           return (
@@ -104,7 +107,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                   <button
                     onClick={() => setOpenSetup(!openSetup)}
                     className={`w-full flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
-                      pathname.includes('/dashboard/setups')
+                      isActive('/dashboard/setups')
                         ? 'bg-white/10 text-white'
                         : 'text-white/60 hover:bg-white/5 hover:text-white'
                     }`}
@@ -129,7 +132,7 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                             key={subItem.href}
                             onClick={() => handleNavigation(subItem.href)}
                             className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                              pathname === subItem.href
+                              isActive(subItem.href)
                                 ? 'bg-white/10 text-white'
                                 : 'text-white/60 hover:bg-white/5 hover:text-white'
                             }`}
@@ -146,8 +149,8 @@ export default function Sidebar({ currentPath }: SidebarProps) {
                 <button
                   onClick={() => handleNavigation(item.href)}
                   className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg transition-colors ${
-                    isActive 
-                      ? 'bg-white/10 text-white' 
+                    isActive(item.href)
+                      ? 'bg-white/10 text-white'
                       : 'text-white/60 hover:bg-white/5 hover:text-white'
                   }`}
                 >

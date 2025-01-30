@@ -11,7 +11,7 @@ export default function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '/dashboard';
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const toggleSidebar = () => {

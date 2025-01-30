@@ -2,22 +2,44 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { Send, Clock, Reply, Edit, Info } from 'lucide-react';
+import { Send, Clock, Reply, Edit, Info, FileText } from 'lucide-react';
+import ReportDialog from '@/components/ReportDialog';
+import ReportNotification from '@/components/ReportNotification';
+import { Button } from '@/components/ui/button';
+import { formatDistanceToNow } from 'date-fns';
+import { useToast } from "@/components/ui/use-toast";
 
 interface Message {
   id: string;
   content: string;
   userId: string;
-  isReport?: boolean;
-  replyToId?: string | null;
-  replyTo?: Message | null;
+  createdAt: string;
+  updatedAt: string;
+  isReport: boolean;
+  approved: boolean | null;
+  replyToId?: string;
+  replyTo?: {
+    id: string;
+    content: string;
+    user: {
+      id: string;
+      firstName: string;
+      lastName: string;
+    };
+  };
   user: {
+    id: string;
     firstName: string;
     lastName: string;
     role: string;
-    imageUrl: string | null;
+    imageUrl?: string;
+    supervisorId?: string;
   };
-  createdAt: string;
+  tasks?: {
+    id: string;
+    title: string;
+    status: string;
+  }[];
 }
 
 interface ContextMenu {
@@ -38,9 +60,11 @@ interface Task {
 
 export default function ChatPage() {
   const { data: session, status } = useSession();
+  const { toast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [isReportModalOpen, setIsReportModalOpen] = useState(false);
+  const [isReportDialogOpen, setIsReportDialogOpen] = useState(false);
+  const [pendingReports, setPendingReports] = useState<Message[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [selectedTasks, setSelectedTasks] = useState<string[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenu>({ x: 0, y: 0, messageId: '', isVisible: false });
@@ -133,10 +157,21 @@ export default function ChatPage() {
   }, [status]);
 
   useEffect(() => {
-    if (isReportModalOpen && session?.user?.id) {
+    if (session?.user?.role === 'SUPERVISOR') {
+      // Filter pending reports for supervisor's students
+      const supervisorPendingReports = messages.filter(
+        (msg) => msg.isReport && msg.approved === null && 
+        msg.user.supervisorId === session.user.id
+      );
+      setPendingReports(supervisorPendingReports);
+    }
+  }, [messages, session?.user]);
+
+  useEffect(() => {
+    if (isReportDialogOpen && session?.user?.id) {
       fetchTasks();
     }
-  }, [isReportModalOpen, session?.user?.id]);
+  }, [isReportDialogOpen, session?.user?.id]);
 
   useEffect(() => {
     scrollToBottom();
@@ -198,22 +233,13 @@ export default function ChatPage() {
     });
   };
 
-  const handleSubmitReport = async () => {
-    if (selectedTasks.length === 0) return;
-
+  const handleSubmitReport = async (content: string) => {
     try {
-      // Create report message with selected tasks
-      const tasksList = tasks
-        .filter(task => selectedTasks.includes(task.id))
-        .map(task => `- ${task.title}${task.status === 'COMPLETED' ? ' ✓' : ''}`).join('\n');
-
-      const reportContent = `Daily Report:\n${tasksList}`;
-
       const response = await fetch('/api/chat/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          content: reportContent,
+          content,
           isReport: true,
         }),
       });
@@ -222,11 +248,82 @@ export default function ChatPage() {
         throw new Error('Failed to send report');
       }
 
-      setIsReportModalOpen(false);
-      setSelectedTasks([]);
       await fetchMessages();
     } catch (error) {
       console.error('Error sending report:', error);
+      throw error;
+    }
+  };
+
+  const handleApproveReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/chat/messages/${reportId}/approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to approve report');
+      }
+
+      const updatedMessage = await response.json();
+
+      // Update the message in the UI
+      setMessages(messages.map(msg => 
+        msg.id === reportId ? { ...msg, ...updatedMessage } : msg
+      ));
+
+      toast({
+        title: "Report Approved",
+        description: "The report has been approved successfully.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error approving report:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to approve report. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleRejectReport = async (reportId: string) => {
+    try {
+      const response = await fetch(`/api/chat/messages/${reportId}/reject`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        throw new Error(errorData || 'Failed to reject report');
+      }
+
+      const updatedMessage = await response.json();
+
+      // Update the message in the UI
+      setMessages(messages.map(msg => 
+        msg.id === reportId ? { ...msg, ...updatedMessage } : msg
+      ));
+
+      toast({
+        title: "Report Rejected",
+        description: "The report has been rejected.",
+        variant: "default",
+      });
+    } catch (error) {
+      console.error('Error rejecting report:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to reject report. Please try again.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -327,16 +424,66 @@ export default function ChatPage() {
               <p className="text-sm text-gray-500 mt-0.5">Connect with students and admins</p>
             </div>
             {session?.user?.role === 'STUDENT' && (
-              <button
-                onClick={() => setIsReportModalOpen(true)}
-                className="bg-blue-500 text-white rounded-full px-4 py-1.5 text-sm hover:bg-blue-600 transition-colors flex items-center gap-1.5"
+              <Button
+                variant="outline"
+                size="sm"
+                className="mb-2"
+                onClick={() => setIsReportDialogOpen(true)}
               >
-                <Clock className="w-4 h-4" />
-                Report Progress
-              </button>
+                <FileText className="w-4 h-4 mr-2" />
+                Submit Report
+              </Button>
             )}
           </div>
         </div>
+
+        {/* Pending Reports for Supervisors */}
+        {session?.user?.role === 'SUPERVISOR' && pendingReports.length > 0 && (
+          <div className="bg-orange-50 border-b border-orange-100 p-4">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-sm font-medium text-orange-800">
+                Pending Reports ({pendingReports.length})
+              </h2>
+            </div>
+            <div className="space-y-2">
+              {pendingReports.map((report) => (
+                <div
+                  key={report.id}
+                  className="bg-white rounded-lg border border-orange-200 p-3 shadow-sm"
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900">
+                          {report.user.firstName} {report.user.lastName}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {formatDistanceToNow(new Date(report.createdAt), { addSuffix: true })}
+                        </span>
+                      </div>
+                      <p className="text-sm text-gray-600 mt-1 line-clamp-2">{report.content}</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleRejectReport(report.id)}
+                      >
+                        Reject
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => handleApproveReport(report.id)}
+                      >
+                        Approve
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="p-4 mx-4 mt-4 bg-red-50 border border-red-200 rounded-lg">
@@ -350,93 +497,169 @@ export default function ChatPage() {
         )}
 
         {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-6 bg-gray-50">
+        <div className="flex-1 overflow-y-auto p-4 space-y-4" ref={messagesEndRef}>
           {messages.length === 0 && !error ? (
             <div className="flex flex-col items-center justify-center h-full text-center text-gray-500 space-y-4">
               <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                <svg className="w-8 h-8 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
                 </svg>
               </div>
               <div>
-                <p className="font-medium">No messages yet</p>
-                <p className="text-sm">Start the conversation!</p>
+                <p className="text-lg font-medium">No messages yet</p>
+                <p className="text-sm">Be the first to start the conversation!</p>
               </div>
             </div>
           ) : (
-            messages.map((message) => {
-              const isCurrentUser = message.userId === session?.user?.id;
-              return (
-                <div
-                  key={message.id}
-                  className={`flex items-start gap-2 ${isCurrentUser ? 'flex-row-reverse' : ''}`}
-                  onContextMenu={(e) => handleContextMenu(e, message)}
-                >
-                  <div className={`flex flex-col ${isCurrentUser ? 'items-end' : 'items-start'} max-w-[45%]`}>
-                    <div className="flex items-center gap-2 mb-0.5">
-                      <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0 overflow-hidden border-2 border-white shadow-sm">
-                        {message.user.imageUrl ? (
-                          <img
-                            src={message.user.imageUrl}
-                            alt={`${message.user.firstName} ${message.user.lastName}`}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-xs font-medium text-white">
-                            {message.user.firstName[0]}
-                          </span>
-                        )}
-                      </div>
-                      <div className={`flex items-center gap-1.5 ${isCurrentUser ? 'flex-row-reverse' : ''}`}>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 font-medium">
-                          {message.user.firstName} {message.user.lastName}
-                        </span>
-                        <span
-                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                            message.user.role === 'ADMIN'
-                              ? 'bg-purple-100 text-purple-700'
-                              : 'bg-emerald-100 text-emerald-700'
-                          }`}
-                        >
-                          {message.user.role.toLowerCase()}
-                        </span>
-                        {message.isReport && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-700">
-                            progress report
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    {message.replyTo && (
-                      <div className={`flex items-center gap-1 text-xs text-gray-500 mb-1 ${isCurrentUser ? 'self-end' : 'self-start'}`}>
-                        <Reply className="w-3 h-3" />
-                        <span>Replying to {message.replyTo.user.firstName}</span>
-                      </div>
-                    )}
-                    <div
-                      className={`rounded-xl px-2.5 py-1.5 ${
-                        message.isReport
-                          ? 'bg-emerald-500 text-white rounded-tr-none'
-                          : isCurrentUser
-                            ? 'bg-blue-500 text-white rounded-tr-none'
-                            : 'bg-white shadow-sm border border-gray-100 rounded-tl-none'
-                      }`}
-                    >
-                      <p className="text-xs leading-relaxed">{message.content}</p>
-                      <span className={`text-[10px] mt-0.5 block ${message.isReport ? 'text-white/70' : isCurrentUser ? 'text-white/70' : 'text-gray-400'}`}>
-                        {new Date(message.createdAt).toLocaleTimeString([], { 
-                          hour: '2-digit', 
-                          minute: '2-digit',
-                          hour12: true 
-                        })}
+            messages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex ${message.userId === session?.user?.id ? 'justify-end' : 'justify-start'}`}
+              >
+                <div className={`flex max-w-[80%] ${message.userId === session?.user?.id ? 'flex-row-reverse' : 'flex-row'} items-start gap-2 group`}>
+                  {/* User Avatar */}
+                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex-shrink-0 flex items-center justify-center">
+                    <span className="text-sm font-medium text-white">
+                      {message.user.firstName[0]}
+                    </span>
+                  </div>
+
+                  {/* Message Content */}
+                  <div className={`flex flex-col ${message.userId === session?.user?.id ? 'items-end' : 'items-start'}`}>
+                    {/* User Name and Time */}
+                    <div className={`flex items-center gap-2 mb-1 ${message.userId === session?.user?.id ? 'flex-row-reverse' : 'flex-row'}`}>
+                      <span className="text-sm font-medium text-gray-900">
+                        {message.user.firstName} {message.user.lastName}
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {formatDistanceToNow(new Date(message.createdAt), { addSuffix: true })}
                       </span>
                     </div>
+
+                    {/* Message Bubble */}
+                    <div
+                      className={`relative group ${
+                        message.isReport
+                          ? 'bg-white border-2 rounded-lg shadow-sm'
+                          : message.userId === session?.user?.id
+                          ? 'bg-blue-500 text-white rounded-2xl rounded-tr-sm'
+                          : 'bg-gray-100 rounded-2xl rounded-tl-sm'
+                      } ${
+                        message.isReport && message.approved === true
+                          ? 'border-green-500'
+                          : message.isReport && message.approved === false
+                          ? 'border-red-500'
+                          : message.isReport
+                          ? 'border-orange-500'
+                          : ''
+                      } px-4 py-2`}
+                    >
+                      {/* Report Status Badge */}
+                      {message.isReport && (
+                        <div className="absolute -top-2 -right-2">
+                          {message.approved === true ? (
+                            <span className="inline-flex items-center rounded-full bg-green-50 px-2 py-1 text-xs font-medium text-green-700 ring-1 ring-inset ring-green-600/20">
+                              Approved
+                            </span>
+                          ) : message.approved === false ? (
+                            <span className="inline-flex items-center rounded-full bg-red-50 px-2 py-1 text-xs font-medium text-red-700 ring-1 ring-inset ring-red-600/20">
+                              Rejected
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center rounded-full bg-orange-50 px-2 py-1 text-xs font-medium text-orange-700 ring-1 ring-inset ring-orange-600/20">
+                              Pending
+                            </span>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Reply Reference */}
+                      {message.replyTo && (
+                        <div className="mb-1 text-sm">
+                          <div className={`flex items-center gap-1 ${
+                            message.userId === session?.user?.id ? 'text-blue-100' : 'text-gray-500'
+                          }`}>
+                            <Reply className="w-3 h-3" />
+                            <span>Replying to {message.replyTo.user.firstName}</span>
+                          </div>
+                          <div className={`mt-1 pl-3 border-l-2 ${
+                            message.userId === session?.user?.id ? 'border-blue-400 text-blue-100' : 'border-gray-300 text-gray-500'
+                          }`}>
+                            {message.replyTo.content.length > 50
+                              ? message.replyTo.content.substring(0, 50) + '...'
+                              : message.replyTo.content}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Message Text */}
+                      <div className={message.isReport ? 'text-gray-900' : ''}>
+                        {message.content}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Message Actions */}
+                  <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${
+                    message.userId === session?.user?.id ? 'mr-2' : 'ml-2'
+                  }`}>
+                    {/* Show approve/reject buttons for supervisors on pending reports */}
+                    {session?.user?.role === 'SUPERVISOR' && message.isReport && message.approved === null && (
+                      <>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleApproveReport(message.id);
+                          }}
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-green-500 rounded hover:bg-green-600"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleRejectReport(message.id);
+                          }}
+                          className="inline-flex items-center px-2 py-1 text-xs font-medium text-white bg-red-500 rounded hover:bg-red-600"
+                        >
+                          Reject
+                        </button>
+                      </>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleReply(message);
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Reply className="w-4 h-4 text-gray-500" />
+                    </button>
+                    {message.userId === session?.user?.id && !message.isReport && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit(message);
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-full"
+                      >
+                        <Edit className="w-4 h-4 text-gray-500" />
+                      </button>
+                    )}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleInfo(message);
+                      }}
+                      className="p-1 hover:bg-gray-100 rounded-full"
+                    >
+                      <Info className="w-4 h-4 text-gray-500" />
+                    </button>
                   </div>
                 </div>
-              );
-            })
+              </div>
+            ))
           )}
-          <div ref={messagesEndRef} />
         </div>
 
         {/* Context Menu */}
@@ -469,44 +692,41 @@ export default function ChatPage() {
               <Info className="w-4 h-4" />
               Info
             </button>
+            {session?.user?.role === 'SUPERVISOR' && messages.find(m => m.id === contextMenu.messageId)?.isReport && (
+              <button
+                onClick={() => handleApproveReport(messages.find(m => m.id === contextMenu.messageId)!.id)}
+                className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Approve Report
+              </button>
+            )}
+            {session?.user?.role === 'SUPERVISOR' && messages.find(m => m.id === contextMenu.messageId)?.isReport && (
+              <button
+                onClick={() => handleRejectReport(messages.find(m => m.id === contextMenu.messageId)!.id)}
+                className="w-full px-4 py-2 text-sm text-left hover:bg-gray-50 flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                Reject Report
+              </button>
+            )}
           </div>
         )}
 
         {/* Input */}
-        <div className="p-4 bg-white border-t">
-          {replyingTo && (
-            <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mb-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Reply className="w-4 h-4" />
-                <span>Replying to {replyingTo.user.firstName}</span>
-              </div>
-              <button
-                onClick={cancelReply}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
+        <div className="border-t p-4 bg-white">
+          {session?.user?.role === 'STUDENT' && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="mb-2"
+              onClick={() => setIsReportDialogOpen(true)}
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              Submit Report
+            </Button>
           )}
-          {editingMessage && (
-            <div className="flex items-center justify-between bg-gray-50 px-3 py-2 rounded-lg mb-2">
-              <div className="flex items-center gap-2 text-sm text-gray-600">
-                <Edit className="w-4 h-4" />
-                <span>Editing message</span>
-              </div>
-              <button
-                onClick={cancelEdit}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-          )}
-          <form onSubmit={sendMessage} className="flex gap-3">
+          <form onSubmit={sendMessage} className="flex gap-2">
             <input
               type="text"
               value={newMessage}
@@ -524,83 +744,24 @@ export default function ChatPage() {
             </button>
           </form>
         </div>
+
+        {/* Report Dialog */}
+        <ReportDialog
+          isOpen={isReportDialogOpen}
+          onClose={() => setIsReportDialogOpen(false)}
+          onSubmit={handleSubmitReport}
+        />
+
+        {/* Report Notifications for Supervisors */}
+        {pendingReports.map((report) => (
+          <ReportNotification
+            key={report.id}
+            report={report}
+            onApprove={handleApproveReport}
+            onReject={handleRejectReport}
+          />
+        ))}
       </div>
-
-      {/* Report Modal */}
-      {isReportModalOpen && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-semibold text-gray-800">Daily Progress Report</h2>
-              <button
-                onClick={() => setIsReportModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600"
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path>
-                </svg>
-              </button>
-            </div>
-            <div className="space-y-4">
-              <div>
-                <h3 className="font-medium text-gray-700">Select Tasks</h3>
-                <div className="space-y-3">
-                  {tasks.map((task) => (
-                    <div key={task.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          checked={selectedTasks.includes(task.id)}
-                          onChange={() => handleTaskSelect(task.id)}
-                          className="w-4 h-4"
-                        />
-                        <div className="flex flex-col">
-                          <span className="text-sm">{task.title}</span>
-                          <span className="text-xs text-gray-500">{task.description}</span>
-                        </div>
-                      </div>
-                      <span className="text-xs text-gray-500">{task.dueDate}</span>
-                    </div>
-                  ))}
-                  {tasks.length === 0 && (
-                    <div className="text-center py-4 text-gray-500">
-                      <p className="text-sm">No tasks available</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div className="flex justify-end gap-3">
-                <button
-                  type="button"
-                  onClick={() => setIsReportModalOpen(false)}
-                  className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  onClick={handleSubmitReport}
-                  disabled={selectedTasks.length === 0}
-                  className="bg-blue-500 text-white rounded-lg px-4 py-2 text-sm hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center gap-2"
-                >
-                  <Clock className="w-4 h-4" />
-                  Submit Report
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Points Notification */}
-      {showPointsNotification && (
-        <div className="fixed bottom-4 right-4 bg-emerald-500 text-white px-4 py-2 rounded-lg shadow-lg flex items-center gap-2 animate-slide-up">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v13m0-13V6a4 4 0 00-4-4H5.52a2.5 2.5 0 01-2.5-2.5v0a2.5 2.5 0 012.5-2.5H12"></path>
-          </svg>
-          <span className="font-medium">+1 point awarded for your report!</span>
-        </div>
-      )}
 
       {/* Info Modal */}
       {infoModalMessage && (
@@ -631,7 +792,7 @@ export default function ChatPage() {
                   {messageViews[infoModalMessage.id]?.map((view: any) => (
                     <div key={view.id} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg">
                       <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-blue-500 to-blue-600 flex items-center justify-center">
                           <span className="text-sm font-medium text-white">
                             {view.user.firstName[0]}
                           </span>
@@ -645,7 +806,9 @@ export default function ChatPage() {
                               className={`text-[10px] px-1.5 py-0.5 rounded-full ${
                                 view.user.role === 'ADMIN'
                                   ? 'bg-purple-100 text-purple-700'
-                                  : 'bg-emerald-100 text-emerald-700'
+                                  : view.user.role === 'SUPERVISOR'
+                                    ? 'bg-orange-100 text-orange-700'
+                                    : 'bg-emerald-100 text-emerald-700'
                               }`}
                             >
                               {view.user.role.toLowerCase()}

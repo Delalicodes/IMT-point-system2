@@ -10,7 +10,7 @@ export default function StudentArenaLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const pathname = usePathname();
+  const pathname = usePathname() || '/student-arena';
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   
   const handleMenuClick = () => {
