@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authConfig } from '@/lib/auth.config';
 import prisma from '@/lib/prisma';
 
 export async function PUT(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     if (!session || session.user.role !== 'ADMIN') {
       return new NextResponse(
         JSON.stringify({ message: 'Unauthorized' }),

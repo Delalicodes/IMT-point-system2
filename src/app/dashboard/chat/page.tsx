@@ -760,6 +760,8 @@ export default function ChatPage() {
             report={report}
             onApprove={handleApproveReport}
             onReject={handleRejectReport}
+            currentUserId={session?.user?.id || ''}
+            currentUserRole={session?.user?.role || ''}
           />
         ))}
       </div>

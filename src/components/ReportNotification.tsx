@@ -32,9 +32,11 @@ interface ReportNotificationProps {
   report: Report;
   onApprove: (reportId: string) => Promise<void>;
   onReject: (reportId: string) => Promise<void>;
+  currentUserId: string;
+  currentUserRole: string;
 }
 
-export default function ReportNotification({ report, onApprove, onReject }: ReportNotificationProps) {
+export default function ReportNotification({ report, onApprove, onReject, currentUserId, currentUserRole }: ReportNotificationProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [isProcessing, setIsProcessing] = useState(false);
   const { toast } = useToast();
@@ -101,19 +103,25 @@ export default function ReportNotification({ report, onApprove, onReject }: Repo
           )}
         </div>
         <DialogFooter className="flex gap-2">
-          <Button
-            variant="destructive"
-            onClick={() => handleAction('reject')}
-            disabled={isProcessing}
-          >
-            Reject
-          </Button>
-          <Button
-            onClick={() => handleAction('approve')}
-            disabled={isProcessing}
-          >
-            Approve
-          </Button>
+          {(currentUserRole === 'ADMIN' || 
+            (currentUserRole === 'SUPERVISOR' && currentUserId !== report.userId)) && (
+            <div>
+              <Button
+                variant="destructive"
+                onClick={() => handleAction('reject')}
+                disabled={isProcessing}
+              >
+                Reject
+              </Button>
+              <Button
+                onClick={() => handleAction('approve')}
+                disabled={isProcessing}
+                className="ml-2"
+              >
+                Approve
+              </Button>
+            </div>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

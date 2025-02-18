@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
-import prisma from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authConfig } from '@/lib/auth.config';
+import prisma from '@/lib/prisma';
+import { authConfig as authOptions } from '@/lib/auth.config';
 import { pointsEventEmitter } from '@/lib/pointsEventEmitter';
 
 export async function POST(request: Request) {

@@ -12,6 +12,7 @@ export default function Home() {
   useEffect(() => {
     if (status === 'authenticated') {
       router.push('/dashboard');
+      router.refresh(); // Force a refresh to ensure the session is updated
     } else if (status === 'unauthenticated') {
       router.push('/login');
     }

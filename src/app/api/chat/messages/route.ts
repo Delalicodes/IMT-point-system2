@@ -1,11 +1,11 @@
 import { NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { getServerSession } from 'next-auth/next';
+import { authConfig } from '@/lib/auth.config';
 import prisma from '@/lib/prisma';
 
 export async function GET() {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -117,7 +117,7 @@ export async function GET() {
 export async function POST(request: Request) {
   console.log('POST /api/chat/messages - Starting');
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     console.log('Session:', JSON.stringify(session, null, 2));
 
     if (!session?.user?.id) {
@@ -250,7 +250,7 @@ export async function POST(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     console.log('PATCH /api/chat/messages - Starting');
     console.log('Session:', JSON.stringify(session, null, 2));
 

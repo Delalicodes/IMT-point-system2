@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
+import { authConfig } from '@/lib/auth.config';
 import prisma from '@/lib/prisma';
 
 export async function PATCH(
@@ -8,7 +8,7 @@ export async function PATCH(
   { params }: { params: { messageId: string } }
 ) {
   try {
-    const session = await getServerSession(authOptions);
+    const session = await getServerSession(authConfig);
     if (!session?.user?.id) {
       return NextResponse.json(
         { error: 'Unauthorized - Please sign in' },
