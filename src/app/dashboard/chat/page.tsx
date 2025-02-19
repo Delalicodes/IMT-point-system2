@@ -412,7 +412,6 @@ export default function ChatPage() {
       </div>
     );
   }
-
   return (
     <div className="max-w-5xl mx-auto p-4 h-[calc(100vh-5rem)]">
       <div className="bg-white rounded-xl shadow-lg h-full flex flex-col overflow-hidden">

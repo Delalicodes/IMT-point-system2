@@ -67,6 +67,18 @@ export const authConfig: AuthOptions = {
         },
       };
     },
+    async redirect({ url, baseUrl }) {
+      if (url.startsWith(baseUrl)) {
+        if (url.includes('/api/auth/signin') || url.includes('/api/auth/callback')) {
+          const redirectUrl = url.includes('callbackUrl=') 
+            ? new URL(url).searchParams.get('callbackUrl') || `${baseUrl}/dashboard`
+            : `${baseUrl}/dashboard`;
+          return redirectUrl;
+        }
+        return url;
+      }
+      return baseUrl;
+    },
   },
   pages: {
     signIn: '/login',

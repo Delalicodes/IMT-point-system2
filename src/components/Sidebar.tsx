@@ -28,8 +28,8 @@ interface SidebarProps {
   currentPath: string;
 }
 
-// Admin menu items
-const adminMenuItems: MenuItem[] = [
+// Combined menu items for all users
+const menuItems: MenuItem[] = [
   // Dashboard section
   { icon: Home, label: 'Dashboard', href: '/dashboard' },
   
@@ -50,22 +50,13 @@ const adminMenuItems: MenuItem[] = [
   { icon: Users, label: 'Students', href: '/dashboard/students' },
   { icon: UserCheck, label: 'Supervisors', href: '/dashboard/setups/supervisor' },
   
+  // Student features
+  { icon: Home, label: 'Student Arena', href: '/student-arena' },
+  { icon: Clock, label: 'Clocking', href: '/student-arena/clocking' },
+  
   // Common features
   { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
-  { icon: Medal, label: 'Points', href: '/dashboard/points' },
-];
-
-// Student menu items
-const studentMenuItems: MenuItem[] = [
-  { icon: Home, label: 'Student Arena', href: '/student-arena' },
-  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
-  { icon: Clock, label: 'Clocking', href: '/student-arena/clocking' },
-];
-
-// Supervisor menu items
-const supervisorMenuItems: MenuItem[] = [
-  { icon: Home, label: 'Student Arena', href: '/student-arena' },
-  { icon: MessageCircle, label: 'Chat', href: '/dashboard/chat' },
+  { icon: Medal, label: 'Points', href: '/dashboard/points' }
 ];
 
 export default function Sidebar({ currentPath }: SidebarProps) {
@@ -90,22 +81,6 @@ export default function Sidebar({ currentPath }: SidebarProps) {
   const isActive = (path: string) => {
     return currentPath.startsWith(path);
   };
-
-  // Choose menu items based on user role
-  const getMenuItems = () => {
-    switch (session?.user?.role) {
-      case 'ADMIN':
-        return adminMenuItems;
-      case 'SUPERVISOR':
-        return supervisorMenuItems;
-      case 'STUDENT':
-        return studentMenuItems;
-      default:
-        return [];
-    }
-  };
-
-  const menuItems = getMenuItems();
 
   return (
     <div className="h-full w-64 bg-[#0A1E54] text-white p-6 overflow-y-auto">

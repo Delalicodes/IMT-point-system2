@@ -158,7 +158,6 @@ export default function DashboardPage() {
 
   return (
     <main className="p-4 md:p-10 mx-auto max-w-7xl">
-      {session?.user?.role && ['ADMIN', 'SUPERVISOR'].includes(session.user.role) ? (
         <>
           <div className="flex justify-between items-center mb-6">
             <Title>Dashboard</Title>
@@ -452,14 +451,6 @@ export default function DashboardPage() {
 
           <ActiveUsers />
         </>
-      ) : (
-        <div className="flex items-center justify-center min-h-screen">
-          <div className="text-center">
-            <h2 className="text-2xl font-bold text-gray-900 mb-2">Access Denied</h2>
-            <p className="text-gray-600">You do not have permission to view this page.</p>
-          </div>
-        </div>
-      )}
     </main>
   );
-}
+  }
