@@ -91,6 +91,15 @@ export async function POST(
       },
     });
 
+    // Award points for approved report
+    await prisma.point.create({
+      data: {
+        points: 1,
+        userId: existingMessage.user.id,
+        note: 'Report Approved',
+      }
+    });
+
     return NextResponse.json(message);
   } catch (error) {
     console.error("[MESSAGE_APPROVE]", error);

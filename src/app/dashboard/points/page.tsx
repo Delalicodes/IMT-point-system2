@@ -111,7 +111,7 @@ export default function PointsPage() {
       // Reset form and close modal
       setFormData({ userId: '', points: 0, note: '' });
       setShowModal(false);
-      toast.success('Points added successfully');
+      toast.success(`Points added successfully: ${data.note || 'No note provided'}`);
     } catch (error: any) {
       console.error('Error adding points:', error);
       toast.error(error.message || 'Failed to add points');
